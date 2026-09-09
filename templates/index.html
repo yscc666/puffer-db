@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>刺豚基因组查询</title>
+    <style>
+        body{font-family:Arial;margin:30px;}
+        .tab-group button{padding:12px 24px;font-size:18px;border:1px solid #999;background:#eee;cursor:pointer;}
+        .tab-group button.active{background:#2b78e4;color:white;border-color:#2b78e4;}
+        .form-item{margin:12px 0;}
+        label{display:block;margin-bottom:4px;font-size:16px;}
+        input{width:450px;padding:8px;font-size:16px;}
+        button.blue{background:#2b78e4;color:white;border:none;padding:10px 22px;font-size:16px;border-radius:4px;cursor:pointer;}
+        button.green{background:#28a745;color:white;border:none;padding:10px 22px;font-size:16px;border-radius:4px;cursor:pointer;}
+        pre{background:#f4f6f8;padding:16px;border-radius:6px;white-space:pre-wrap;margin-top:20px;max-width:900px;}
+    </style>
+</head>
+<body>
+<div class="tab-group">
+    <button class="active" onclick="location.href='/'">基因组序列查询</button>
+    <button onclick="location.href='/gene_query'">基因查询</button>
+</div>
+
+<form method="POST">
+    <div class="form-item">
+        <label>scaffold ID</label>
+        <input name="scaffold_id" value="{{scaffold_id or ''}}">
+    </div>
+    <div class="form-item">
+        <label>start (1‑based)</label>
+        <input name="start" value="{{start or ''}}">
+    </div>
+    <div class="form-item">
+        <label>end</label>
+        <input name="end" value="{{end or ''}}">
+    </div>
+    <div style="margin-top:20px;">
+        <button class="blue" type="submit">查询序列</button>
+        <button class="green" type="submit" formaction="/download_fasta">下载FASTA</button>
+    </div>
+</form>
+
+{% if seq_result %}
+<pre>{{seq_result}}</pre>
+{% endif %}
+
+</body>
+</html>
