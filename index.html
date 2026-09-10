@@ -2,47 +2,162 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>刺豚基因组查询</title>
-    <style>
-        body{font-family:Arial;margin:30px;}
-        .tab-group button{padding:12px 24px;font-size:18px;border:1px solid #999;background:#eee;cursor:pointer;}
-        .tab-group button.active{background:#2b78e4;color:white;border-color:#2b78e4;}
-        .form-item{margin:12px 0;}
-        label{display:block;margin-bottom:4px;font-size:16px;}
-        input{width:450px;padding:8px;font-size:16px;}
-        button.blue{background:#2b78e4;color:white;border:none;padding:10px 22px;font-size:16px;border-radius:4px;cursor:pointer;}
-        button.green{background:#28a745;color:white;border:none;padding:10px 22px;font-size:16px;border-radius:4px;cursor:pointer;}
-        pre{background:#f4f6f8;padding:16px;border-radius:6px;white-space:pre-wrap;margin-top:20px;max-width:900px;}
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密斑刺鲀基因数据库</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
-<div class="tab-group">
-    <button class="active" onclick="location.href='/'">基因组序列查询</button>
-    <button onclick="location.href='/gene_query'">基因查询</button>
-</div>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">🐡 密斑刺鲀基因数据库</div>
+            <div class="nav-links">
+                <a class="nav-link active" href="#" onclick="showPage('home');return false;">首页</a>
+                <a class="nav-link" href="#" onclick="showPage('genes');return false;">基因列表</a>
+            </div>
+        </div>
+    </nav>
 
-<form method="POST">
-    <div class="form-item">
-        <label>scaffold ID</label>
-        <input name="scaffold_id" value="{{scaffold_id or ''}}">
-    </div>
-    <div class="form-item">
-        <label>start (1‑based)</label>
-        <input name="start" value="{{start or ''}}">
-    </div>
-    <div class="form-item">
-        <label>end</label>
-        <input name="end" value="{{end or ''}}">
-    </div>
-    <div style="margin-top:20px;">
-        <button class="blue" type="submit">查询序列</button>
-        <button class="green" type="submit" formaction="/download_fasta">下载FASTA</button>
-    </div>
-</form>
+    <!-- 首页 -->
+    <div id="page-home" class="page">
+        <header class="hero">
+            <div class="container">
+                <h1>密斑刺鲀基因数据库</h1>
+                <p class="hero-subtitle">Diodon hystrix Gene Database</p>
+                <div class="hero-search">
+                    <input type="text" id="searchInput" placeholder="搜索基因名称或功能描述..." oninput="onSearch()">
+                </div>
+            </div>
+        </header>
 
-{% if seq_result %}
-<pre>{{seq_result}}</pre>
-{% endif %}
+        <section class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🧬</div>
+                    <div class="stat-number" id="statGenes">--</div>
+                    <div class="stat-label">基因总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-number" id="statSeq">--</div>
+                    <div class="stat-label">序列记录</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-number" id="statExpr">--</div>
+                    <div class="stat-label">表达量记录</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔬</div>
+                    <div class="stat-number" id="statTissues">--</div>
+                    <div class="stat-label">组织类型</div>
+                </div>
+            </div>
+        </section>
 
+        <section class="container">
+            <div class="two-col">
+                <div class="card">
+                    <h2>物种信息</h2>
+                    <div class="species-info">
+                        <p><strong>中文名：</strong>密斑刺鲀</p>
+                        <p><strong>拉丁名：</strong><em>Diodon hystrix</em></p>
+                        <p><strong>分类：</strong>鲀形目 / 刺鲀科 / 刺鲀属</p>
+                        <p><strong>栖息环境：</strong>热带海洋珊瑚礁区</p>
+                        <p><strong>特征：</strong>体被短棘，遇敌害时能吸水或空气使身体膨胀成球状，棘刺竖起御敌。</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>表达量总览（TPM）</h2>
+                    <div id="chartOverview" class="chart-box"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="container">
+            <div class="card">
+                <h2>基因列表</h2>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>基因ID</th>
+                                <th>基因名称</th>
+                                <th>功能描述</th>
+                                <th>染色体</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="geneTable">
+                            <tr><td colspan="5" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 基因列表页 -->
+    <div id="page-genes" class="page" style="display:none;">
+        <section class="container">
+            <div class="card">
+                <h2>全部基因</h2>
+                <div class="filter-bar">
+                    <input type="text" id="geneFilter" placeholder="筛选基因名称或描述..." oninput="renderGeneTable()">
+                    <select id="chrFilter" onchange="renderGeneTable()">
+                        <option value="">全部染色体</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>基因ID</th>
+                                <th>基因名称</th>
+                                <th>功能描述</th>
+                                <th>染色体</th>
+                                <th>链</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allGeneTable">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">基因详情</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <h3>基本信息</h3>
+                    <div id="detailBasic" class="detail-grid"></div>
+                </div>
+                <div class="detail-section">
+                    <h3>基因序列</h3>
+                    <div id="detailSeq"></div>
+                </div>
+                <div class="detail-section">
+                    <h3>转录组表达量 (TPM)</h3>
+                    <div id="detailChart" class="chart-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 密斑刺鲀基因数据库 | 基于 Supabase + ECharts 构建</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
 </body>
 </html>
