@@ -6,7 +6,7 @@
 // ========== Supabase 配置 ==========
 const SUPABASE_URL = 'https://yvmkkeuskeqahodxiaop.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_1aDEzTYOyuFmoNM8aqkhZA_PS2WSp5t';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 全局数据缓存
 let allGenes = [];
@@ -24,9 +24,9 @@ async function loadAllData() {
     try {
         // 并行加载三张表
         const [genesRes, seqRes, exprRes] = await Promise.all([
-            supabase.from('gene_info').select('*').order('gene_id'),
-            supabase.from('gene_sequence').select('*'),
-            supabase.from('expression_data').select('*')
+            sb.from('gene_info').select('*').order('gene_id'),
+            sb.from('gene_sequence').select('*'),
+            sb.from('expression_data').select('*')
         ]);
 
         allGenes = genesRes.data || [];
