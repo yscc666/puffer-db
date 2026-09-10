@@ -140,7 +140,25 @@ body {
 .clear-history-btn:hover { background: var(--pink); }
 .history-empty { text-align: center; color: var(--text-light); font-size: 13px; padding: 12px; }
 
-/* 统计卡片 2行3列 */
+/* 首页左右布局：左物种信息，右6卡片 */
+.home-layout {
+    display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px;
+    margin-top: 20px; align-items: start;
+}
+.species-card { margin-bottom: 0; }
+.stats-grid-right {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+}
+.stats-grid-right .stat-card {
+    margin: 0; padding: 18px 14px;
+}
+.stats-grid-right .stat-number { font-size: 22px; }
+.stats-grid-right .stat-icon { font-size: 24px; }
+
+/* 返回按钮 */
+.back-btn { margin-bottom: 16px; }
+
+/* 统计卡片（旧的，保留兼容） */
 .stats-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
     margin: -32px 0 28px; position: relative; z-index: 10;
@@ -399,6 +417,8 @@ body {
 /* 响应式 */
 @media (max-width: 768px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .stats-grid-right { grid-template-columns: repeat(2, 1fr); }
+    .home-layout { grid-template-columns: 1fr; }
     .two-col { grid-template-columns: 1fr; }
     .detail-grid { grid-template-columns: 1fr; }
     .hero-title { font-size: 24px; }

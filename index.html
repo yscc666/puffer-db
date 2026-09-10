@@ -67,47 +67,11 @@
             </div>
         </header>
 
-        <!-- 统计卡片 2行3列 -->
+        <!-- 左右布局：左物种信息，右6张统计卡片 -->
         <section class="container">
-            <div class="stats-grid">
-                <div class="stat-card" onclick="goPage('genes')">
-                    <div class="stat-icon">🧬</div>
-                    <div class="stat-number" id="statGenes">--</div>
-                    <div class="stat-label">基因总数</div>
-                </div>
-                <div class="stat-card" onclick="goPage('sequence')">
-                    <div class="stat-icon">📝</div>
-                    <div class="stat-number" id="statSeq">--</div>
-                    <div class="stat-label">序列记录</div>
-                </div>
-                <div class="stat-card" onclick="goPage('expression')">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-number" id="statExpr">--</div>
-                    <div class="stat-label">表达量记录</div>
-                </div>
-                <div class="stat-card" onclick="goPage('tissues')">
-                    <div class="stat-icon">🔬</div>
-                    <div class="stat-number" id="statTissues">--</div>
-                    <div class="stat-label">组织类型</div>
-                </div>
-                <div class="stat-card" onclick="goPage('genes')">
-                    <div class="stat-icon">📋</div>
-                    <div class="stat-number">全部</div>
-                    <div class="stat-label">基因列表</div>
-                </div>
-                <div class="stat-card" onclick="goPage('comments')">
-                    <div class="stat-icon">💬</div>
-                    <div class="stat-number" id="statComments">--</div>
-                    <div class="stat-label">评论区</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 物种信息 + 表达量总览 -->
-        <section class="container">
-            <div class="two-col">
+            <div class="home-layout">
                 <!-- 左：物种信息 -->
-                <div class="card">
+                <div class="card species-card">
                     <h2>物种信息</h2>
                     <div class="species-detail">
                         <div class="species-img-wrap">
@@ -132,29 +96,38 @@
                     </div>
                 </div>
 
-                <!-- 右：表达量总览卡片 -->
-                <div class="card chart-card" onclick="goPage('expression')">
-                    <h2>表达量总览（TPM）</h2>
-                    <div id="chartOverview" class="chart-box"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 基因列表 -->
-        <section class="container">
-            <div class="card">
-                <h2>基因列表</h2>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>基因ID</th><th>基因名称</th><th>功能描述</th><th>染色体</th><th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="geneTable">
-                            <tr><td colspan="5" class="loading">加载中...</td></tr>
-                        </tbody>
-                    </table>
+                <!-- 右：6张统计卡片 2行3列 -->
+                <div class="stats-grid-right">
+                    <div class="stat-card" onclick="goPage('genes')">
+                        <div class="stat-icon">🧬</div>
+                        <div class="stat-number" id="statGenes">--</div>
+                        <div class="stat-label">基因总数</div>
+                    </div>
+                    <div class="stat-card" onclick="goPage('sequence')">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-number" id="statSeq">--</div>
+                        <div class="stat-label">序列记录</div>
+                    </div>
+                    <div class="stat-card" onclick="goPage('expression')">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-number" id="statExpr">--</div>
+                        <div class="stat-label">表达量记录</div>
+                    </div>
+                    <div class="stat-card" onclick="goPage('tissues')">
+                        <div class="stat-icon">🔬</div>
+                        <div class="stat-number" id="statTissues">--</div>
+                        <div class="stat-label">组织类型</div>
+                    </div>
+                    <div class="stat-card" onclick="goPage('genes')">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-number">全部</div>
+                        <div class="stat-label">基因列表</div>
+                    </div>
+                    <div class="stat-card" onclick="goPage('comments')">
+                        <div class="stat-icon">💬</div>
+                        <div class="stat-number" id="statComments">--</div>
+                        <div class="stat-label">评论区</div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -163,6 +136,7 @@
     <!-- 基因列表页 -->
     <div id="page-genes" class="page" style="display:none;">
         <section class="container">
+            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
             <div class="card">
                 <h2>基因列表</h2>
                 <div class="filter-bar">
@@ -190,6 +164,7 @@
     <!-- 序列记录页 -->
     <div id="page-sequence" class="page" style="display:none;">
         <section class="container">
+            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
             <div class="card">
                 <h2>序列记录</h2>
                 <div class="table-wrap">
@@ -209,6 +184,7 @@
     <!-- 表达量总览页 -->
     <div id="page-expression" class="page" style="display:none;">
         <section class="container">
+            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
             <div class="card">
                 <h2>表达量总览（TPM）</h2>
                 <div id="chartExprFull" class="chart-box" style="height:400px;"></div>
@@ -219,6 +195,7 @@
     <!-- 组织信息页 -->
     <div id="page-tissues" class="page" style="display:none;">
         <section class="container">
+            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
             <div class="card">
                 <h2>组织类型</h2>
                 <div id="tissueList" class="tissue-grid">
