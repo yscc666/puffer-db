@@ -585,3 +585,35 @@ mark { background: var(--pink-light); color: var(--title); padding: 0 2px; borde
 .tag-chip.domain .tag-id { color: #fd79a8; border-left: 3px solid #fd79a8; }
 .tag-chip.domain { border-left: 3px solid #fd79a8; }
 .tag-empty { color: var(--text-light); font-size: 13px; padding: 8px 0; }
+/* ===== v1.3 蛋白性质 / 统计 / 流程 / 下载 ===== */
+.props-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.props-item {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; transition: transform 0.2s, box-shadow 0.2s;
+}
+.props-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.props-item .label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.4px; }
+.props-item .value { font-size: 16px; font-weight: 700; color: var(--title); margin-top: 4px; font-family: var(--mono); }
+.stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.sub-chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; text-align: center; }
+.step-flow { display: flex; align-items: stretch; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.step-item {
+    flex: 1; min-width: 130px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; display: flex; gap: 10px; align-items: flex-start;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.step-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary-light); }
+.step-num {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--gradient);
+    color: #fff; font-size: 13px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-body { display: flex; flex-direction: column; }
+.step-body strong { font-size: 13.5px; color: var(--title); }
+.step-body small { font-size: 11.5px; color: var(--text-light); margin-top: 4px; line-height: 1.5; }
+.step-arrow { align-self: center; color: var(--primary-light); font-size: 18px; flex-shrink: 0; }
+.download-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+@media (max-width: 800px) {
+    .stats-grid-2 { grid-template-columns: 1fr; }
+    .step-arrow { display: none; }
+}

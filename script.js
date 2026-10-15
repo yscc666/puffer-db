@@ -147,6 +147,7 @@ async function loadData() {
         renderFullExprChart();
         renderChrDist();
         renderHeatmap();
+        renderSeqStats();
         loadComments();
     } catch (err) {
         console.error('数据加载失败:', err);
@@ -160,7 +161,7 @@ function goPage(page) {
     if (el) el.style.display = 'block';
     setActiveNav(page);
     window.scrollTo({ top: 0 });
-    if (page === 'genes') { renderGeneTable(); renderChrDist(); }
+    if (page === 'genes') { renderGeneTable(); renderChrDist(); renderSeqStats(); }
     if (page === 'expression') { renderFullExprChart(); renderHeatmap(); }
 }
 function goHome() { goPage('home'); }
@@ -415,6 +416,152 @@ function exportGeneCSV() {
     URL.revokeObjectURL(url);
 }
 
+// ========== 序列特征统计 ==========
+function renderSeqStats() {
+    const cdsEl = document.getElementById('cdsLenChart');
+    const gcEl = document.getElementById('gcDistChart');
+    if (!cdsEl || !gcEl || allSeq.length === 0) return;
+    // CDS 长度分段
+    const bins = [
+        { label: '< 500', min: 0, max: 499 },
+        { label: '500-1000', min: 500, max: 999 },
+        { label: '1000-1500', min: 1000, max: 1499 },
+        { label: '1500-2000', min: 1500, max: 1999 },
+        { label: '≥ 2000', min: 2000, max: 1e9 }
+    ];
+    const cdsData = bins.map(b => allSeq.filter(s => (s.cds_length ?? 0) >= b.min && (s.cds_length ?? 0) <= b.max).length);
+    if (cdsEl.__init) cdsEl.__init.dispose();
+    const c1 = echarts.init(cdsEl); cdsEl.__init = c1;
+    c1.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: '4%', right: '4%', bottom: '4%', top: '8%', containLabel: true },
+        xAxis: { type: 'category', data: bins.map(b => b.label) },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [{ type: 'bar', barMaxWidth: 40, data: cdsData,
+            itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#a29bfe'},{offset:1,color:'#74b9ff'}]), borderRadius: [5,5,0,0] },
+            label: { show: true, position: 'top' } }]
+    });
+    // GC 含量分段
+    const gcBins = [
+        { label: '< 40', min: 0, max: 39.99 },
+        { label: '40-45', min: 40, max: 44.99 },
+        { label: '45-50', min: 45, max: 49.99 },
+        { label: '50-55', min: 50, max: 54.99 },
+        { label: '≥ 55', min: 55, max: 100 }
+    ];
+    const gcData = gcBins.map(b => allSeq.filter(s => (s.gc_content ?? 0) >= b.min && (s.gc_content ?? 0) <= b.max).length);
+    if (gcEl.__init) gcEl.__init.dispose();
+    const c2 = echarts.init(gcEl); gcEl.__init = c2;
+    c2.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: '4%', right: '4%', bottom: '4%', top: '8%', containLabel: true },
+        xAxis: { type: 'category', data: gcBins.map(b => b.label) },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [{ type: 'bar', barMaxWidth: 40, data: gcData,
+            itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#fd79a8'},{offset:1,color:'#fdcb6e'}]), borderRadius: [5,5,0,0] },
+            label: { show: true, position: 'top' } }]
+    });
+}
+
+// ========== 蛋白理化性质计算 ==========
+const AA_MW = { A:89.09,R:174.20,N:132.12,D:133.10,C:121.15,Q:146.15,E:147.13,G:75.07,H:155.16,I:131.17,L:131.17,K:146.19,M:149.21,F:165.19,P:115.13,S:105.09,T:119.12,W:204.23,Y:181.19,V:117.15 };
+const AA_FULL = { A:'Alanine 丙氨酸',R:'Arginine 精氨酸',N:'Asparagine 天冬酰胺',D:'Aspartate 天冬氨酸',C:'Cysteine 半胱氨酸',Q:'Glutamine 谷氨酰胺',E:'Glutamate 谷氨酸',G:'Glycine 甘氨酸',H:'Histidine 组氨酸',I:'Isoleucine 异亮氨酸',L:'Leucine 亮氨酸',K:'Lysine 赖氨酸',M:'Methionine 甲硫氨酸',F:'Phenylalanine 苯丙氨酸',P:'Proline 脯氨酸',S:'Serine 丝氨酸',T:'Threonine 苏氨酸',W:'Tryptophan 色氨酸',Y:'Tyrosine 酪氨酸',V:'Valine 缬氨酸' };
+
+function calcProteinProps(seq) {
+    if (!seq) return null;
+    const up = seq.toUpperCase().replace(/[^A-Z]/g, '');
+    const counts = {};
+    let mw = 18.02, neg = 0, pos = 0;
+    for (const ch of up) {
+        counts[ch] = (counts[ch] || 0) + 1;
+        const w = AA_MW[ch] || 0;
+        if (w) mw += (w - 18.02);
+        if (ch === 'D' || ch === 'E') neg++;
+        if (ch === 'K' || ch === 'R') pos++;
+        if (ch === 'H') pos += 0.5;
+    }
+    // 简化理论等电点估算（基于正负电荷残基平衡）
+    const pI = Math.max(0, Math.min(14, 5.7 + (pos - neg) * 0.25)).toFixed(2);
+    const aaCount = Object.keys(counts).length;
+    return {
+        length: up.length,
+        mw: mw.toFixed(2),
+        pI,
+        neg, pos, aaCount,
+        counts, total: up.length
+    };
+}
+
+function renderAminoChart(props, elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (el.__init) el.__init.dispose();
+    const chart = echarts.init(el); el.__init = chart;
+    const sorted = Object.entries(props.counts).sort((a, b) => b[1] - a[1]);
+    const names = sorted.map(([k]) => `${k} (${AA_FULL[k]?.split(' ')[0] || k})`);
+    const vals = sorted.map(([, v]) => +(v / props.total * 100).toFixed(2));
+    chart.setOption({
+        tooltip: {
+            formatter: p => `${AA_FULL[p.name.split(' ')[0]] || p.name}<br/>数量: ${props.counts[p.name.split(' ')[0]]}<br/>占比: ${p.value}%`
+        },
+        grid: { left: '3%', right: '4%', bottom: '8%', top: '5%', containLabel: true },
+        xAxis: { type: 'category', data: names, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },
+        yAxis: { type: 'value', name: '%' },
+        series: [{ type: 'bar', barMaxWidth: 30, data: vals,
+            itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#6c5ce7'},{offset:1,color:'#a29bfe'}]), borderRadius: [4,4,0,0] } }]
+    });
+}
+
+// ========== 通用导出（CSV / FASTA） ==========
+const EXPORT_META = {
+    gene_info: { headers: ['gene_id','gene_name','gene_desc','gene_biotype','chromosome','start_pos','end_pos','strand'], file: 'DiodonDB_gene_info.csv' },
+    gene_sequence: { headers: ['gene_id','cds_length','protein_length','gc_content'], file: 'DiodonDB_sequence.csv' },
+    expression_data: { headers: ['gene_id','tissue','tpm','fpkm','replicate'], file: 'DiodonDB_expression.csv' },
+    go_annotation: { headers: ['gene_id','go_id','go_term','category'], file: 'DiodonDB_go_annotation.csv' },
+    kegg_pathway: { headers: ['gene_id','pathway_id','pathway_name'], file: 'DiodonDB_kegg_pathway.csv' },
+    protein_domain: { headers: ['gene_id','domain_id','domain_name','source'], file: 'DiodonDB_protein_domain.csv' }
+};
+const EXPORT_SOURCE = {
+    gene_info: () => allGenes, gene_sequence: () => allSeq, expression_data: () => allExpr,
+    go_annotation: () => allGO, kegg_pathway: () => allKegg, protein_domain: () => allDomains
+};
+
+function exportTableCSV(table) {
+    const meta = EXPORT_META[table];
+    const data = EXPORT_SOURCE[table]();
+    if (!meta || !data || data.length === 0) return;
+    const rows = data.map(g => meta.headers.map(h => {
+        let v = g[h] ?? '';
+        if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) v = '"' + v.replace(/"/g, '""') + '"';
+        return v;
+    }).join(','));
+    const csv = [meta.headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = meta.file;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportAllFasta() {
+    if (allSeq.length === 0) return;
+    let fasta = '';
+    allSeq.forEach(s => {
+        const g = allGenes.find(x => x.gene_id === s.gene_id);
+        if (s.cds_sequence) fasta += `>${s.gene_id}|${g ? g.gene_name : ''}|cds|Diodon_hystrix\n${s.cds_sequence}\n`;
+        if (s.protein_sequence) fasta += `>${s.gene_id}|${g ? g.gene_name : ''}|protein|Diodon_hystrix\n${s.protein_sequence}\n`;
+    });
+    const blob = new Blob([fasta], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'DiodonDB_all_sequences.fasta';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // ========== 搜索 ==========
 function getHistory() {
     try { return JSON.parse(localStorage.getItem('db_search_history') || '[]'); }
@@ -640,6 +787,28 @@ function showDetail(geneId) {
             </a>`).join('')}</div>`;
     } else {
         document.getElementById('detailDomain').innerHTML = '<div class="tag-empty">暂无结构域数据</div>';
+    }
+
+    // 蛋白理化性质 + 氨基酸组成（从序列实时计算）
+    const propsEl = document.getElementById('detailProps');
+    const aminoEl = document.getElementById('detailAminoChart');
+    if (seq && seq.protein_sequence) {
+        const props = calcProteinProps(seq.protein_sequence);
+        if (props) {
+            propsEl.innerHTML = `
+                <div class="props-item"><div class="label">氨基酸数</div><div class="value">${props.length} aa</div></div>
+                <div class="props-item"><div class="label">分子量 (Da)</div><div class="value">${props.mw}</div></div>
+                <div class="props-item"><div class="label">理论 pI</div><div class="value">${props.pI}</div></div>
+                <div class="props-item"><div class="label">负电残基 (D+E)</div><div class="value">${props.neg}</div></div>
+                <div class="props-item"><div class="label">正电残基 (K+R)</div><div class="value">${props.pos}</div></div>
+                <div class="props-item"><div class="label">氨基酸种类</div><div class="value">${props.aaCount} 种</div></div>`;
+            renderAminoChart(props, 'detailAminoChart');
+        } else {
+            propsEl.innerHTML = '<div class="tag-empty">暂无蛋白序列，无法计算</div>';
+        }
+    } else {
+        propsEl.innerHTML = '<div class="tag-empty">暂无蛋白序列，无法计算理化性质</div>';
+        if (aminoEl) aminoEl.innerHTML = '';
     }
 
     // 表达谱：图 + 表格
