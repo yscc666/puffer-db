@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>密斑刺鲀基因数据库</title>
+    <title>密斑刺鲀基因数据库 | Diodon hystrix Gene Database</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
-    <!-- 新访客首访弹窗 -->
+    <!-- 新访客弹窗 -->
     <div id="welcomeModal" class="welcome-modal" style="display:none;">
         <div class="welcome-box">
             <div class="welcome-head">
@@ -24,10 +24,15 @@
     <!-- 顶部导航 -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-logo" onclick="goHome()" style="cursor:pointer;">
-                🐡 密斑刺鲀基因数据库
+            <div class="nav-brand" onclick="goHome()">
+                <span class="nav-logo-icon">🐡</span>
+                <div class="nav-title">
+                    <span class="nav-logo">DiodonDB</span>
+                    <span class="nav-sub">密斑刺鲀多组学基因数据库 · v1.0</span>
+                </div>
             </div>
             <div class="nav-right">
+                <span class="nav-meta">Build 2026.09</span>
                 <button class="theme-toggle" onclick="toggleTheme()" title="切换深浅模式">
                     <span id="themeIcon">🌙</span>
                 </button>
@@ -37,96 +42,145 @@
 
     <!-- 首页 -->
     <div id="page-home" class="page">
-        <!-- Banner -->
+        <!-- 专业 Hero 区 -->
         <header class="hero">
             <div class="container">
-                <h1 class="hero-title">密斑刺鲀基因数据库</h1>
-                <p class="hero-sub">Diodon hystrix Gene Database</p>
-
-                <!-- 搜索框 -->
-                <div class="search-wrap">
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="搜索基因名称、ID或功能..."
-                               oninput="onSearchInput()" onfocus="showSearchPanel()" autocomplete="off">
-                        <button class="search-btn" onclick="doSearch()">🔍</button>
-                    </div>
-                    <!-- 搜索下拉面板 -->
-                    <div id="searchPanel" class="search-panel" style="display:none;">
-                        <div class="search-panel-section">
-                            <div class="search-panel-title">搜索历史</div>
-                            <div id="historyList" class="history-list"></div>
-                            <div id="historyEmpty" class="history-empty">暂无搜索历史</div>
-                            <button class="clear-history-btn" onclick="clearHistory()">清空全部历史</button>
+                <div class="hero-left">
+                    <h1 class="hero-title">密斑刺鲀基因数据库</h1>
+                    <p class="hero-sub">Diodon hystrix Multi-omics Gene Database</p>
+                    <p class="hero-desc">
+                        专注于密斑刺鲀（<em>Diodon hystrix</em>）的转录组学研究数据库，
+                        整合基因结构、CDS/蛋白序列、多组织表达谱等多组学数据，为刺鲀类鱼类分子生物学研究提供数据支持。
+                    </p>
+                </div>
+                <div class="hero-right">
+                    <div class="search-wrap">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="搜索基因名 (如 ACTB)、基因 ID 或功能关键词..."
+                                   oninput="onSearchInput()" onfocus="showSearchPanel()" autocomplete="off">
+                            <button class="search-btn" onclick="doSearch()">搜索</button>
                         </div>
-                        <div class="search-panel-section">
-                            <div class="search-panel-title">基因联想</div>
-                            <div id="suggestList" class="suggest-list"></div>
+                        <div class="search-tags">
+                            <span class="search-tag-label">热门：</span>
+                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('ACTB')">ACTB</a>
+                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('GAPDH')">GAPDH</a>
+                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('TNF')">TNF</a>
+                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('TP53')">TP53</a>
+                        </div>
+                        <div id="searchPanel" class="search-panel" style="display:none;">
+                            <div class="search-panel-section">
+                                <div class="search-panel-title">搜索历史</div>
+                                <div id="historyList" class="history-list"></div>
+                                <div id="historyEmpty" class="history-empty">暂无搜索历史</div>
+                                <button class="clear-history-btn" onclick="clearHistory()">清空全部历史</button>
+                            </div>
+                            <div class="search-panel-section">
+                                <div class="search-panel-title">基因联想</div>
+                                <div id="suggestList" class="suggest-list"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- 左右布局：左物种信息，右6张统计卡片 -->
+        <!-- 数据概览条 -->
+        <div class="stats-strip">
+            <div class="container">
+                <div class="stats-strip-inner">
+                    <div class="strip-item"><span class="strip-num" id="statGenes">--</span><span class="strip-label">基因</span></div>
+                    <div class="strip-divider"></div>
+                    <div class="strip-item"><span class="strip-num" id="statSeq">--</span><span class="strip-label">序列</span></div>
+                    <div class="strip-divider"></div>
+                    <div class="strip-item"><span class="strip-num" id="statExpr">--</span><span class="strip-label">表达记录</span></div>
+                    <div class="strip-divider"></div>
+                    <div class="strip-item"><span class="strip-num" id="statTissues">--</span><span class="strip-label">组织类型</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区：左物种信息，右功能卡片 -->
         <section class="container">
             <div class="home-layout">
-                <!-- 左：物种信息 -->
+                <!-- 左：物种档案 -->
                 <div class="card species-card">
-                    <h2>物种信息</h2>
+                    <div class="card-head">
+                        <h2>物种档案</h2>
+                        <span class="badge">Taxonomy</span>
+                    </div>
                     <div class="species-detail">
                         <div class="species-img-wrap">
                             <img src="pufferfish.jpg" alt="密斑刺鲀" class="species-img">
+                            <p class="img-caption">密斑刺鲀 <em>Diodon hystrix</em></p>
                         </div>
                         <div class="species-info-grid">
                             <div class="info-item"><span class="info-label">中文名</span><span class="info-val">密斑刺鲀</span></div>
                             <div class="info-item"><span class="info-label">拉丁学名</span><span class="info-val"><em>Diodon hystrix</em></span></div>
                             <div class="info-item"><span class="info-label">别名</span><span class="info-val">密斑二齿鲀、斑点河鲀</span></div>
-                            <div class="info-item"><span class="info-label">界</span><span class="info-val">动物界</span></div>
-                            <div class="info-item"><span class="info-label">门</span><span class="info-val">脊索动物门</span></div>
-                            <div class="info-item"><span class="info-label">亚门</span><span class="info-val">脊椎动物亚门</span></div>
-                            <div class="info-item"><span class="info-label">纲</span><span class="info-val">辐鳍鱼纲</span></div>
-                            <div class="info-item"><span class="info-label">亚纲</span><span class="info-val">新鳍亚纲</span></div>
-                            <div class="info-item"><span class="info-label">目</span><span class="info-val">鲀形目</span></div>
-                            <div class="info-item"><span class="info-label">亚目</span><span class="info-val">四齿鲀亚目</span></div>
-                            <div class="info-item"><span class="info-label">科</span><span class="info-val">刺鲀科</span></div>
-                            <div class="info-item"><span class="info-label">属</span><span class="info-val">刺鲀属</span></div>
+                            <div class="info-item"><span class="info-label">界</span><span class="info-val">动物界 Animalia</span></div>
+                            <div class="info-item"><span class="info-label">门</span><span class="info-val">脊索动物门 Chordata</span></div>
+                            <div class="info-item"><span class="info-label">亚门</span><span class="info-val">脊椎动物亚门 Vertebrata</span></div>
+                            <div class="info-item"><span class="info-label">纲</span><span class="info-val">辐鳍鱼纲 Actinopterygii</span></div>
+                            <div class="info-item"><span class="info-label">亚纲</span><span class="info-val">新鳍亚纲 Neopterygii</span></div>
+                            <div class="info-item"><span class="info-label">目</span><span class="info-val">鲀形目 Tetraodontiformes</span></div>
+                            <div class="info-item"><span class="info-label">亚目</span><span class="info-val">四齿鲀亚目 Tetraodontoidei</span></div>
+                            <div class="info-item"><span class="info-label">科</span><span class="info-val">刺鲀科 Diodontidae</span></div>
+                            <div class="info-item"><span class="info-label">属</span><span class="info-val">刺鲀属 <em>Diodon</em></span></div>
                             <div class="info-item"><span class="info-label">命名者</span><span class="info-val">Linnaeus, 1758</span></div>
-                            <div class="info-item"><span class="info-label">保护级别</span><span class="info-val">IUCN 无危</span></div>
+                            <div class="info-item"><span class="info-label">保护级别</span><span class="info-val"><span class="badge-green">IUCN 无危 (LC)</span></span></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 右：6张统计卡片 2行3列 -->
-                <div class="stats-grid-right">
-                    <div class="stat-card" onclick="goPage('genes')">
-                        <div class="stat-icon">🧬</div>
-                        <div class="stat-number" id="statGenes">--</div>
-                        <div class="stat-label">基因总数</div>
+                <!-- 右：功能入口 2x3 -->
+                <div class="nav-grid">
+                    <div class="nav-entry" onclick="goPage('genes')">
+                        <div class="nav-entry-icon">🧬</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">基因注释</div>
+                            <div class="nav-entry-desc">浏览全部基因及功能注释</div>
+                            <div class="nav-entry-stat"><span id="statGenes2">--</span> 条记录</div>
+                        </div>
                     </div>
-                    <div class="stat-card" onclick="goPage('sequence')">
-                        <div class="stat-icon">📝</div>
-                        <div class="stat-number" id="statSeq">--</div>
-                        <div class="stat-label">序列记录</div>
+                    <div class="nav-entry" onclick="goPage('sequence')">
+                        <div class="nav-entry-icon">📝</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">基因序列</div>
+                            <div class="nav-entry-desc">CDS 与蛋白质序列查询</div>
+                            <div class="nav-entry-stat"><span id="statSeq2">--</span> 条序列</div>
+                        </div>
                     </div>
-                    <div class="stat-card" onclick="goPage('expression')">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-number" id="statExpr">--</div>
-                        <div class="stat-label">表达量记录</div>
+                    <div class="nav-entry" onclick="goPage('expression')">
+                        <div class="nav-entry-icon">📊</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">表达谱</div>
+                            <div class="nav-entry-desc">多组织 TPM / FPKM 表达量</div>
+                            <div class="nav-entry-stat"><span id="statExpr2">--</span> 条记录</div>
+                        </div>
                     </div>
-                    <div class="stat-card" onclick="goPage('tissues')">
-                        <div class="stat-icon">🔬</div>
-                        <div class="stat-number" id="statTissues">--</div>
-                        <div class="stat-label">组织类型</div>
+                    <div class="nav-entry" onclick="goPage('tissues')">
+                        <div class="nav-entry-icon">🔬</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">组织分类</div>
+                            <div class="nav-entry-desc">按组织类型浏览表达谱</div>
+                            <div class="nav-entry-stat"><span id="statTissues2">--</span> 种组织</div>
+                        </div>
                     </div>
-                    <div class="stat-card" onclick="goPage('genes')">
-                        <div class="stat-icon">📋</div>
-                        <div class="stat-number">全部</div>
-                        <div class="stat-label">基因列表</div>
+                    <div class="nav-entry" onclick="goPage('comments')">
+                        <div class="nav-entry-icon">💬</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">社区讨论</div>
+                            <div class="nav-entry-desc">研究者留言与交流</div>
+                            <div class="nav-entry-stat"><span id="statComments2">--</span> 条留言</div>
+                        </div>
                     </div>
-                    <div class="stat-card" onclick="goPage('comments')">
-                        <div class="stat-icon">💬</div>
-                        <div class="stat-number" id="statComments">--</div>
-                        <div class="stat-label">评论区</div>
+                    <div class="nav-entry" onclick="goPage('about')">
+                        <div class="nav-entry-icon">ℹ️</div>
+                        <div class="nav-entry-body">
+                            <div class="nav-entry-title">关于数据库</div>
+                            <div class="nav-entry-desc">数据库版本与数据来源</div>
+                            <div class="nav-entry-stat">v1.0</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,9 +190,12 @@
     <!-- 基因列表页 -->
     <div id="page-genes" class="page" style="display:none;">
         <section class="container">
-            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>基因注释</span></nav>
             <div class="card">
-                <h2>基因列表</h2>
+                <div class="card-head">
+                    <h2>基因注释列表</h2>
+                    <span class="badge">Genome Annotation</span>
+                </div>
                 <div class="filter-bar">
                     <input type="text" id="geneFilter" placeholder="筛选基因名称或描述..." oninput="renderGeneTable()">
                     <select id="chrFilter" onchange="renderGeneTable()">
@@ -148,12 +205,10 @@
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
-                            <tr>
-                                <th>基因ID</th><th>基因名称</th><th>功能描述</th><th>染色体</th><th>链</th><th>操作</th>
-                            </tr>
+                            <tr><th>#</th><th>基因 ID</th><th>基因名称</th><th>功能描述</th><th>染色体</th><th>链</th><th>操作</th></tr>
                         </thead>
                         <tbody id="allGeneTable">
-                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                            <tr><td colspan="7" class="loading">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -164,16 +219,19 @@
     <!-- 序列记录页 -->
     <div id="page-sequence" class="page" style="display:none;">
         <section class="container">
-            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>基因序列</span></nav>
             <div class="card">
-                <h2>序列记录</h2>
+                <div class="card-head">
+                    <h2>CDS / Protein 序列</h2>
+                    <span class="badge">Sequences</span>
+                </div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
-                            <tr><th>基因ID</th><th>CDS长度(bp)</th><th>蛋白长度(aa)</th><th>GC含量(%)</th><th>操作</th></tr>
+                            <tr><th>#</th><th>基因 ID</th><th>CDS 长度 (bp)</th><th>蛋白长度 (aa)</th><th>GC 含量 (%)</th><th>操作</th></tr>
                         </thead>
                         <tbody id="seqTable">
-                            <tr><td colspan="5" class="loading">加载中...</td></tr>
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -184,10 +242,13 @@
     <!-- 表达量总览页 -->
     <div id="page-expression" class="page" style="display:none;">
         <section class="container">
-            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>表达谱</span></nav>
             <div class="card">
-                <h2>表达量总览（TPM）</h2>
-                <div id="chartExprFull" class="chart-box" style="height:400px;"></div>
+                <div class="card-head">
+                    <h2>多组织基因表达谱 (TPM)</h2>
+                    <span class="badge">Transcriptome</span>
+                </div>
+                <div id="chartExprFull" class="chart-box" style="height:420px;"></div>
             </div>
         </section>
     </div>
@@ -195,9 +256,12 @@
     <!-- 组织信息页 -->
     <div id="page-tissues" class="page" style="display:none;">
         <section class="container">
-            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>组织分类</span></nav>
             <div class="card">
-                <h2>组织类型</h2>
+                <div class="card-head">
+                    <h2>组织类型</h2>
+                    <span class="badge">Tissues</span>
+                </div>
                 <div id="tissueList" class="tissue-grid">
                     <div class="loading">加载中...</div>
                 </div>
@@ -208,27 +272,47 @@
     <!-- 评论区页 -->
     <div id="page-comments" class="page" style="display:none;">
         <section class="container">
-            <button class="btn-secondary back-btn" onclick="goHome()">← 返回首页</button>
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>社区讨论</span></nav>
             <div class="card">
-                <h2>评论区</h2>
-                <!-- 留言表单 -->
+                <div class="card-head">
+                    <h2>社区讨论</h2>
+                    <span class="badge">Discussion</span>
+                </div>
                 <div class="comment-form">
                     <div class="form-row">
                         <input type="text" id="commentName" placeholder="昵称（必填）" maxlength="20">
-                        <select id="commentEmoji">
-                            <option value="🐟">🐟</option>
-                        </select>
+                        <select id="commentEmoji"><option value="🐟">🐟</option></select>
                         <input type="email" id="commentEmail" placeholder="邮箱（选填）">
                     </div>
                     <textarea id="commentContent" placeholder="写下你的留言..." rows="3" maxlength="500"></textarea>
                     <div class="form-bottom">
                         <span id="commentTip" class="form-tip"></span>
-                        <button class="btn-primary" id="submitCommentBtn" onclick="submitComment()">提交留言</button>
+                        <button class="btn-primary" onclick="submitComment()">提交留言</button>
                     </div>
                 </div>
-                <!-- 留言列表 -->
                 <div id="commentList" class="comment-list">
                     <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 关于页 -->
+    <div id="page-about" class="page" style="display:none;">
+        <section class="container">
+            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>关于</span></nav>
+            <div class="card">
+                <div class="card-head">
+                    <h2>关于 DiodonDB</h2>
+                </div>
+                <div class="about-content">
+                    <p><strong>数据库名称：</strong>密斑刺鲀多组学基因数据库 (DiodonDB)</p>
+                    <p><strong>版本：</strong>v1.0 (2026.09)</p>
+                    <p><strong>数据类型：</strong>转录组 (Transcriptome)</p>
+                    <p><strong>物种：</strong>密斑刺鲀 <em>Diodon hystrix</em></p>
+                    <p><strong>技术栈：</strong>Supabase (PostgreSQL) + HTML/CSS/JavaScript + ECharts</p>
+                    <p><strong>部署：</strong>GitHub Pages 静态托管</p>
+                    <p><strong>用途：</strong>本科毕业论文设计作品，用于密斑刺鲀基因资源的查询与可视化展示。</p>
                 </div>
             </div>
         </section>
@@ -276,8 +360,26 @@
 
     <!-- 页脚 -->
     <footer class="footer">
-        <p>© 2026 密斑刺鲀基因数据库 | 基于 Supabase + ECharts 构建</p>
-        <p class="visit-count">本站累计访问：<span id="visitCount">--</span> 次</p>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <p class="footer-title">DiodonDB</p>
+                    <p>密斑刺鲀多组学基因数据库</p>
+                </div>
+                <div>
+                    <p><strong>数据类型：</strong>转录组</p>
+                    <p><strong>物种：</strong><em>Diodon hystrix</em></p>
+                </div>
+                <div>
+                    <p><strong>技术：</strong>Supabase + ECharts</p>
+                    <p><strong>部署：</strong>GitHub Pages</p>
+                </div>
+                <div>
+                    <p>累计访问：<span id="visitCount">--</span></p>
+                    <p>© 2026 DiodonDB · v1.0</p>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

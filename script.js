@@ -106,6 +106,11 @@ async function loadData() {
         document.getElementById('statSeq').textContent = allSeq.length;
         document.getElementById('statExpr').textContent = allExpr.length;
         document.getElementById('statTissues').textContent = allTissues.size;
+        // 右侧卡片数据
+        document.getElementById('statGenes2').textContent = allGenes.length;
+        document.getElementById('statSeq2').textContent = allSeq.length;
+        document.getElementById('statExpr2').textContent = allExpr.length;
+        document.getElementById('statTissues2').textContent = allTissues.size;
 
         // 染色体筛选
         const chrs = [...new Set(allGenes.map(g => g.chromosome).filter(Boolean))].sort();
@@ -148,32 +153,41 @@ function renderGeneTable() {
     });
 
     const home = document.getElementById('geneTable');
-    if (home) home.innerHTML = filtered.map(g => `
+    if (home) home.innerHTML = filtered.map((g, i) => `
         <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
-            <td>${g.gene_id}</td><td><strong>${g.gene_name}</strong></td>
-            <td>${g.gene_desc || '-'}</td><td>${g.chromosome || '-'}</td>
-            <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
-        </tr>`).join('') || '<tr><td colspan="5" class="loading">未找到</td></tr>';
-
-    const all = document.getElementById('allGeneTable');
-    if (all) all.innerHTML = filtered.map(g => `
-        <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
-            <td>${g.gene_id}</td><td><strong>${g.gene_name}</strong></td>
-            <td>${g.gene_desc || '-'}</td><td>${g.chromosome || '-'}</td>
-            <td>${g.strand || '-'}</td>
+            <td>${i + 1}</td>
+            <td class="gene-id">${g.gene_id}</td>
+            <td><strong>${g.gene_name}</strong></td>
+            <td>${g.gene_desc || '-'}</td>
+            <td>${g.chromosome || '-'}</td>
             <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
         </tr>`).join('') || '<tr><td colspan="6" class="loading">未找到</td></tr>';
+
+    const all = document.getElementById('allGeneTable');
+    if (all) all.innerHTML = filtered.map((g, i) => `
+        <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
+            <td>${i + 1}</td>
+            <td class="gene-id">${g.gene_id}</td>
+            <td><strong>${g.gene_name}</strong></td>
+            <td>${g.gene_desc || '-'}</td>
+            <td>${g.chromosome || '-'}</td>
+            <td>${g.strand || '-'}</td>
+            <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
+        </tr>`).join('') || '<tr><td colspan="7" class="loading">未找到</td></tr>';
 }
 
 function renderSeqTable() {
     const el = document.getElementById('seqTable');
     if (!el) return;
-    el.innerHTML = allSeq.map(s => `
+    el.innerHTML = allSeq.map((s, i) => `
         <tr>
-            <td>${s.gene_id}</td><td>${s.cds_length || '-'}</td>
-            <td>${s.protein_length || '-'}</td><td>${s.gc_content || '-'}</td>
+            <td>${i + 1}</td>
+            <td class="gene-id">${s.gene_id}</td>
+            <td>${s.cds_length || '-'}</td>
+            <td>${s.protein_length || '-'}</td>
+            <td>${s.gc_content || '-'}</td>
             <td><button class="btn-detail" onclick="showDetail('${s.gene_id}')">查看</button></td>
-        </tr>`).join('') || '<tr><td colspan="5" class="loading">暂无序列</td></tr>';
+        </tr>`).join('') || '<tr><td colspan="6" class="loading">暂无序列</td></tr>';
 }
 
 function renderTissueGrid() {
@@ -297,6 +311,10 @@ function pickHistory(kw) {
 }
 function pickSuggest(name) {
     document.getElementById('searchInput').value = name;
+    doSearch();
+}
+function quickSearch(kw) {
+    document.getElementById('searchInput').value = kw;
     doSearch();
 }
 function delHistory(i) {
@@ -423,7 +441,10 @@ function saveComments(list) {
 
 function loadComments() {
     const list = getComments();
-    document.getElementById('statComments').textContent = list.length;
+    const el1 = document.getElementById('statComments');
+    if (el1) el1.textContent = list.length;
+    const el2 = document.getElementById('statComments2');
+    if (el2) el2.textContent = list.length;
     const el = document.getElementById('commentList');
     if (list.length === 0) {
         el.innerHTML = '<div class="loading">暂无留言，来抢沙发吧～</div>';
