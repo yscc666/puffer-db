@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DiodonDB | 密斑刺鲀基因数据库</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -28,7 +28,7 @@
                 <span class="nav-logo-icon">🐡</span>
                 <div class="nav-title">
                     <span class="nav-logo">DiodonDB</span>
-                    <span class="nav-sub">密斑刺鲀多组学基因数据库 · v1.1</span>
+                    <span class="nav-sub">密斑刺鲀多组学基因数据库 · v1.2</span>
                 </div>
             </div>
             <div class="nav-menu" id="navMenu">
@@ -61,7 +61,7 @@
                         整合基因结构、CDS/蛋白序列、多组织表达谱等多组学数据，为刺鲀类鱼类分子生物学研究提供数据支持。
                     </p>
                     <p class="hero-meta">
-                        <span class="badge badge-light">v1.1</span>
+                        <span class="badge badge-light">v1.2</span>
                         <span class="badge badge-light">Transcriptome</span>
                         <span class="badge badge-light">1 Species</span>
                     </p>
@@ -108,6 +108,10 @@
                     <div class="strip-item"><span class="strip-num" id="statExpr">--</span><span class="strip-label">表达记录</span></div>
                     <div class="strip-divider"></div>
                     <div class="strip-item"><span class="strip-num" id="statTissues">--</span><span class="strip-label">组织类型</span></div>
+                    <div class="strip-divider"></div>
+                    <div class="strip-item"><span class="strip-num" id="statGO">--</span><span class="strip-label">GO 注释</span></div>
+                    <div class="strip-divider"></div>
+                    <div class="strip-item"><span class="strip-num" id="statKegg">--</span><span class="strip-label">KEGG 通路</span></div>
                 </div>
             </div>
         </div>
@@ -192,7 +196,7 @@
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">关于数据库</div>
                             <div class="nav-entry-desc">数据来源 · 引用方式</div>
-                            <div class="nav-entry-stat">v1.1</div>
+                            <div class="nav-entry-stat">v1.2</div>
                         </div>
                     </div>
                 </div>
@@ -215,6 +219,7 @@
                         <option value="">全部染色体</option>
                     </select>
                     <button class="btn-secondary" onclick="resetGeneFilter()">重置</button>
+                    <button class="btn-primary" onclick="exportGeneCSV()">导出 CSV</button>
                 </div>
                 <div class="table-wrap">
                     <table class="data-table" id="geneTable">
@@ -229,11 +234,20 @@
                             </tr>
                         </thead>
                         <tbody id="allGeneTable">
-                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                            <tr><td colspan="7" class="loading">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="pagination" id="genePagination"></div>
+            </div>
+
+            <!-- 染色体分布 -->
+            <div class="card" style="margin-top:20px;">
+                <div class="card-head">
+                    <h2>染色体基因分布</h2>
+                    <span class="badge">Genome Distribution</span>
+                </div>
+                <div id="chrDistChart" class="chart-box" style="height:300px;"></div>
             </div>
         </section>
     </div>
@@ -271,6 +285,15 @@
                     <span class="badge">Transcriptome</span>
                 </div>
                 <div id="chartExprFull" class="chart-box" style="height:420px;"></div>
+            </div>
+
+            <!-- 表达热图 -->
+            <div class="card" style="margin-top:20px;">
+                <div class="card-head">
+                    <h2>基因 × 组织 表达热图 (TPM)</h2>
+                    <span class="badge">Heatmap</span>
+                </div>
+                <div id="chartHeatmap" class="chart-box" style="height:420px;"></div>
             </div>
         </section>
     </div>
@@ -326,11 +349,11 @@
             <div class="card">
                 <div class="card-head">
                     <h2>关于 DiodonDB</h2>
-                    <span class="badge">v1.1</span>
+                    <span class="badge">v1.2</span>
                 </div>
                 <div class="about-content">
                     <p><strong>数据库名称：</strong>密斑刺鲀多组学基因数据库 (DiodonDB)</p>
-                    <p><strong>版本：</strong>v1.1 (2026.10)</p>
+                    <p><strong>版本：</strong>v1.2 (2026.10)</p>
                     <p><strong>数据类型：</strong>转录组 (Transcriptome)</p>
                     <p><strong>物种：</strong>密斑刺鲀 <em>Diodon hystrix</em></p>
                     <p><strong>技术栈：</strong>Supabase (PostgreSQL) + HTML/CSS/JavaScript + ECharts</p>
@@ -345,7 +368,7 @@
                     <h3>引用方式 (Citation)</h3>
                     <div class="citation-box">
                         <p>若您在研究中使用了 DiodonDB，请按以下格式引用：</p>
-                        <p class="citation-text">DiodonDB: A Multi-omics Gene Database for Diodon hystrix. v1.1. 2026. Available at: https://yscc666.github.io/puffer-db/</p>
+                        <p class="citation-text">DiodonDB: A Multi-omics Gene Database for Diodon hystrix. v1.2. 2026. Available at: https://yscc666.github.io/puffer-db/</p>
                         <button class="btn-secondary" style="margin-top:8px;" onclick="copyCitation()">复制引用</button>
                     </div>
                 </div>
@@ -378,6 +401,24 @@
                 <div class="detail-section">
                     <h3>Genomic Context <span class="badge">基因组定位</span></h3>
                     <div id="detailGenomic" class="ctx-grid"></div>
+                </div>
+
+                <!-- GO 功能注释 -->
+                <div class="detail-section">
+                    <h3>Gene Ontology <span class="badge">功能注释</span></h3>
+                    <div id="detailGO" class="tag-block"></div>
+                </div>
+
+                <!-- KEGG 通路 -->
+                <div class="detail-section">
+                    <h3>KEGG Pathways <span class="badge">信号通路</span></h3>
+                    <div id="detailKegg" class="tag-block"></div>
+                </div>
+
+                <!-- 蛋白结构域 -->
+                <div class="detail-section">
+                    <h3>Protein Domains <span class="badge">蛋白结构域</span></h3>
+                    <div id="detailDomain" class="tag-block"></div>
                 </div>
 
                 <!-- 表达谱 -->
@@ -428,7 +469,7 @@
                 <div>
                     <p class="footer-title">DiodonDB</p>
                     <p>密斑刺鲀多组学基因数据库</p>
-                    <p class="footer-cite">引用：DiodonDB v1.1, 2026.</p>
+                    <p class="footer-cite">引用：DiodonDB v1.2, 2026.</p>
                 </div>
                 <div>
                     <p><strong>数据类型：</strong>转录组</p>
@@ -440,7 +481,7 @@
                 </div>
                 <div>
                     <p>累计访问：<span id="visitCount">--</span></p>
-                    <p>© 2026 DiodonDB · v1.1</p>
+                    <p>© 2026 DiodonDB · v1.2</p>
                 </div>
             </div>
             <div class="footer-note">
@@ -450,6 +491,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=3"></script>
+    <script src="script.js?v=4"></script>
 </body>
 </html>

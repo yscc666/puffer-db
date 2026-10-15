@@ -13,6 +13,9 @@ let allGenes = [];
 let allSeq = [];
 let allExpr = [];
 let allTissues = new Set();
+let allGO = [];
+let allKegg = [];
+let allDomains = [];
 let geneSortKey = 'gene_id';
 let geneSortDir = 'asc';
 let genePage = 1;
@@ -98,20 +101,28 @@ function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 // ========== 数据加载 ==========
 async function loadData() {
     try {
-        const [genesRes, seqRes, exprRes] = await Promise.all([
+        const [genesRes, seqRes, exprRes, goRes, keggRes, domRes] = await Promise.all([
             sb.from('gene_info').select('*').order('gene_id'),
             sb.from('gene_sequence').select('*'),
-            sb.from('expression_data').select('*')
+            sb.from('expression_data').select('*'),
+            sb.from('go_annotation').select('*'),
+            sb.from('kegg_pathway').select('*'),
+            sb.from('protein_domain').select('*')
         ]);
         allGenes = genesRes.data || [];
         allSeq = seqRes.data || [];
         allExpr = exprRes.data || [];
+        allGO = goRes.data || [];
+        allKegg = keggRes.data || [];
+        allDomains = domRes.data || [];
         allExpr.forEach(e => allTissues.add(e.tissue));
 
         document.getElementById('statGenes').textContent = allGenes.length;
         document.getElementById('statSeq').textContent = allSeq.length;
         document.getElementById('statExpr').textContent = allExpr.length;
         document.getElementById('statTissues').textContent = allTissues.size;
+        document.getElementById('statGO').textContent = allGO.length;
+        document.getElementById('statKegg').textContent = allKegg.length;
         const el1 = document.getElementById('statGenes2');
         if (el1) el1.textContent = allGenes.length;
         const el2 = document.getElementById('statSeq2');
@@ -134,6 +145,8 @@ async function loadData() {
         renderSeqTable();
         renderTissueGrid();
         renderFullExprChart();
+        renderChrDist();
+        renderHeatmap();
         loadComments();
     } catch (err) {
         console.error('数据加载失败:', err);
@@ -147,8 +160,8 @@ function goPage(page) {
     if (el) el.style.display = 'block';
     setActiveNav(page);
     window.scrollTo({ top: 0 });
-    if (page === 'genes') renderGeneTable();
-    if (page === 'expression') renderFullExprChart();
+    if (page === 'genes') { renderGeneTable(); renderChrDist(); }
+    if (page === 'expression') { renderFullExprChart(); renderHeatmap(); }
 }
 function goHome() { goPage('home'); }
 function setActiveNav(page) {
@@ -308,6 +321,98 @@ function renderFullExprChart() {
             })
         }))
     });
+}
+
+// ========== 染色体分布图 ==========
+function renderChrDist() {
+    const el = document.getElementById('chrDistChart');
+    if (!el || allGenes.length === 0) return;
+    if (el.__init) { el.__init.dispose(); }
+    const chart = echarts.init(el);
+    el.__init = chart;
+    const chrs = [...new Set(allGenes.map(g => g.chromosome).filter(Boolean))].sort((a, b) => {
+        const na = parseInt(a.replace('chr', '')), nb = parseInt(b.replace('chr', ''));
+        return na - nb;
+    });
+    chart.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', data: chrs, name: '染色体' },
+        yAxis: { type: 'value', name: '基因数', minInterval: 1 },
+        series: [{
+            name: '基因数', type: 'bar', barMaxWidth: 46,
+            data: chrs.map(c => allGenes.filter(g => g.chromosome === c).length),
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#a29bfe' }, { offset: 1, color: '#74b9ff' }
+                ]),
+                borderRadius: [6, 6, 0, 0]
+            },
+            label: { show: true, position: 'top' }
+        }]
+    });
+}
+
+// ========== 表达热图 ==========
+function renderHeatmap() {
+    const el = document.getElementById('chartHeatmap');
+    if (!el || allGenes.length === 0 || allTissues.size === 0) return;
+    if (el.__init) { el.__init.dispose(); }
+    const chart = echarts.init(el);
+    el.__init = chart;
+    const tissues = [...allTissues];
+    const genes = allGenes.map(g => g.gene_name);
+    const data = [];
+    let maxV = 1;
+    genes.forEach((n, gi) => {
+        const g = allGenes[gi];
+        tissues.forEach((t, ti) => {
+            const r = allExpr.find(e => e.gene_id === g.gene_id && e.tissue === t);
+            const v = r ? r.tpm : 0;
+            if (v > maxV) maxV = v;
+            data.push([ti, gi, v]);
+        });
+    });
+    chart.setOption({
+        tooltip: {
+            position: 'top',
+            formatter: p => `${tissues[p.value[0]]} · ${genes[p.value[1]]}<br/>TPM: <strong>${p.value[2]}</strong>`
+        },
+        grid: { left: '3%', right: '12%', bottom: '10%', top: '3%', containLabel: true },
+        xAxis: { type: 'category', data: tissues, name: '组织', splitArea: { show: true } },
+        yAxis: { type: 'category', data: genes, name: '基因', splitArea: { show: true } },
+        visualMap: {
+            min: 0, max: maxV, calculable: true, orient: 'vertical', right: 0, top: 'center',
+            inRange: { color: ['#f6f3ff', '#c9b6f5', '#8e7bd6', '#5b4a9e'] }
+        },
+        series: [{
+            name: 'TPM', type: 'heatmap',
+            data, label: { show: false },
+            emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)' } }
+        }]
+    });
+}
+
+// ========== 导出基因 CSV ==========
+function exportGeneCSV() {
+    const headers = ['gene_id', 'gene_name', 'gene_desc', 'gene_biotype', 'chromosome', 'start_pos', 'end_pos', 'strand'];
+    const rows = allGenes.map(g => headers.map(h => {
+        let v = g[h] ?? '';
+        if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) {
+            v = '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'DiodonDB_gene_info.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // ========== 搜索 ==========
@@ -498,6 +603,44 @@ function showDetail(geneId) {
         <div class="ctx-item"><div class="label">Location</div><div class="value">${g.start_pos || '-'} - ${g.end_pos || '-'}</div></div>
         <div class="ctx-item"><div class="label">Strand</div><div class="value">${g.strand || '-'}</div></div>
         <div class="ctx-item"><div class="label">Biotype</div><div class="value">${g.gene_biotype || '-'}</div></div>`;
+
+    // GO 功能注释（按 MF/BP/CC 分组）
+    const goList = allGO.filter(x => x.gene_id === geneId);
+    const goCats = [['MF', '分子功能 Molecular Function'], ['BP', '生物学过程 Biological Process'], ['CC', '细胞组分 Cellular Component']];
+    if (goList.length > 0) {
+        document.getElementById('detailGO').innerHTML = goCats.map(([cat, label]) => {
+            const items = goList.filter(x => x.category === cat);
+            if (items.length === 0) return '';
+            return `<div class="tag-cat">${label}</div><div class="tag-list">${items.map(x => `
+                <a class="tag-chip ${cat.toLowerCase()}" href="https://amigo.geneontology.org/amigo/term/${x.go_id}" target="_blank" rel="noopener" title="点击查看 GO 详情">
+                    <span class="tag-id">${x.go_id}</span>${x.go_term}
+                </a>`).join('')}</div>`;
+        }).join('');
+    } else {
+        document.getElementById('detailGO').innerHTML = '<div class="tag-empty">暂无 GO 注释数据</div>';
+    }
+
+    // KEGG 通路
+    const keggList = allKegg.filter(x => x.gene_id === geneId);
+    if (keggList.length > 0) {
+        document.getElementById('detailKegg').innerHTML = `<div class="tag-list">${keggList.map(x => `
+            <a class="tag-chip kegg" href="https://www.kegg.jp/pathway/${x.pathway_id}" target="_blank" rel="noopener" title="点击查看 KEGG 通路详情">
+                <span class="tag-id">${x.pathway_id}</span>${x.pathway_name}
+            </a>`).join('')}</div>`;
+    } else {
+        document.getElementById('detailKegg').innerHTML = '<div class="tag-empty">暂无通路数据</div>';
+    }
+
+    // 蛋白结构域
+    const domList = allDomains.filter(x => x.gene_id === geneId);
+    if (domList.length > 0) {
+        document.getElementById('detailDomain').innerHTML = `<div class="tag-list">${domList.map(x => `
+            <a class="tag-chip domain" href="https://www.ebi.ac.uk/interpro/entry/pfam/${x.domain_id}" target="_blank" rel="noopener" title="点击查看 InterPro 结构域详情">
+                <span class="tag-id">${x.domain_id}</span>${x.domain_name}
+            </a>`).join('')}</div>`;
+    } else {
+        document.getElementById('detailDomain').innerHTML = '<div class="tag-empty">暂无结构域数据</div>';
+    }
 
     // 表达谱：图 + 表格
     const expr = allExpr.filter(e => e.gene_id === geneId);
