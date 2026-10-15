@@ -1,5 +1,6 @@
 /**
- * 密斑刺鲀基因数据库 - 前端逻辑
+ * DiodonDB - 密斑刺鲀基因数据库前端逻辑
+ * v1.1 (对标国际生物数据库风格)
  */
 
 // ========== Supabase 配置 ==========
@@ -12,6 +13,10 @@ let allGenes = [];
 let allSeq = [];
 let allExpr = [];
 let allTissues = new Set();
+let geneSortKey = 'gene_id';
+let geneSortDir = 'asc';
+let genePage = 1;
+const PAGE_SIZE = 5;
 
 // emoji 头像列表
 const EMOJIS = ['🐟','🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐤','🐦','🐧','🦆','🦅','🦉','🐴','🦄','🐝','🐞','🦋','🐢','🐍','🐙','🦑','🐡','🐋','🐳','🐟','🦈','🦭','🐊','🐘','🦒','🦓','🐪','🐫','🦘','🐑','🐏','🐎','🐕','🐈','🦜','🦚','🦢','🕊️','🦩','🌵','🎄','🌱','🌴','🌳','🌲','🌿','🍀','🌹','🌻','🌸','🌼','🍁','🍄','🐚','🌊'];
@@ -23,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVisitCount();
     initEmojiSelect();
     initBackTop();
+    setActiveNav('home');
     await loadData();
 });
 
@@ -106,11 +112,14 @@ async function loadData() {
         document.getElementById('statSeq').textContent = allSeq.length;
         document.getElementById('statExpr').textContent = allExpr.length;
         document.getElementById('statTissues').textContent = allTissues.size;
-        // 右侧卡片数据
-        document.getElementById('statGenes2').textContent = allGenes.length;
-        document.getElementById('statSeq2').textContent = allSeq.length;
-        document.getElementById('statExpr2').textContent = allExpr.length;
-        document.getElementById('statTissues2').textContent = allTissues.size;
+        const el1 = document.getElementById('statGenes2');
+        if (el1) el1.textContent = allGenes.length;
+        const el2 = document.getElementById('statSeq2');
+        if (el2) el2.textContent = allSeq.length;
+        const el3 = document.getElementById('statExpr2');
+        if (el3) el3.textContent = allExpr.length;
+        const el4 = document.getElementById('statTissues2');
+        if (el4) el4.textContent = allTissues.size;
 
         // 染色体筛选
         const chrs = [...new Set(allGenes.map(g => g.chromosome).filter(Boolean))].sort();
@@ -124,7 +133,6 @@ async function loadData() {
         renderGeneTable();
         renderSeqTable();
         renderTissueGrid();
-        renderOverviewChart();
         renderFullExprChart();
         loadComments();
     } catch (err) {
@@ -132,64 +140,138 @@ async function loadData() {
     }
 }
 
-// ========== 页面切换 ==========
+// ========== 页面切换与导航高亮 ==========
 function goPage(page) {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById('page-' + page).style.display = 'block';
+    const el = document.getElementById('page-' + page);
+    if (el) el.style.display = 'block';
+    setActiveNav(page);
     window.scrollTo({ top: 0 });
+    if (page === 'genes') renderGeneTable();
+    if (page === 'expression') renderFullExprChart();
 }
 function goHome() { goPage('home'); }
+function setActiveNav(page) {
+    document.querySelectorAll('.nav-link').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('data-page') === page);
+    });
+}
 
-// ========== 表格渲染 ==========
-function renderGeneTable() {
+// ========== 基因表格（排序 + 筛选 + 分页） ==========
+function getFilteredGenes() {
     const kw = (document.getElementById('geneFilter')?.value || '').toLowerCase();
     const chr = document.getElementById('chrFilter')?.value || '';
-    const filtered = allGenes.filter(g => {
-        const mk = !kw || g.gene_name.toLowerCase().includes(kw) ||
-                   g.gene_desc.toLowerCase().includes(kw) ||
-                   g.gene_id.toLowerCase().includes(kw);
+    let list = allGenes.filter(g => {
+        const mk = !kw || (g.gene_name || '').toLowerCase().includes(kw) ||
+                   (g.gene_desc || '').toLowerCase().includes(kw) ||
+                   (g.gene_id || '').toLowerCase().includes(kw);
         const mc = !chr || g.chromosome === chr;
         return mk && mc;
     });
-
-    const home = document.getElementById('geneTable');
-    if (home) home.innerHTML = filtered.map((g, i) => `
-        <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
-            <td>${i + 1}</td>
-            <td class="gene-id">${g.gene_id}</td>
-            <td><strong>${g.gene_name}</strong></td>
-            <td>${g.gene_desc || '-'}</td>
-            <td>${g.chromosome || '-'}</td>
-            <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
-        </tr>`).join('') || '<tr><td colspan="6" class="loading">未找到</td></tr>';
-
-    const all = document.getElementById('allGeneTable');
-    if (all) all.innerHTML = filtered.map((g, i) => `
-        <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
-            <td>${i + 1}</td>
-            <td class="gene-id">${g.gene_id}</td>
-            <td><strong>${g.gene_name}</strong></td>
-            <td>${g.gene_desc || '-'}</td>
-            <td>${g.chromosome || '-'}</td>
-            <td>${g.strand || '-'}</td>
-            <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
-        </tr>`).join('') || '<tr><td colspan="7" class="loading">未找到</td></tr>';
+    // 排序
+    list.sort((a, b) => {
+        const va = a[geneSortKey] ?? '';
+        const vb = b[geneSortKey] ?? '';
+        const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb));
+        return geneSortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
 }
 
+function sortGeneTable(key) {
+    if (geneSortKey === key) {
+        geneSortDir = geneSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        geneSortKey = key;
+        geneSortDir = 'asc';
+    }
+    genePage = 1;
+    // 更新表头箭头
+    document.querySelectorAll('#geneTable th.sortable').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.getAttribute('data-sort') === key) {
+            th.classList.add(geneSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+    });
+    renderGeneTable();
+}
+
+function resetGeneFilter() {
+    document.getElementById('geneFilter').value = '';
+    document.getElementById('chrFilter').value = '';
+    geneSortKey = 'gene_id'; geneSortDir = 'asc'; genePage = 1;
+    document.querySelectorAll('#geneTable th.sortable').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+    renderGeneTable();
+}
+
+function renderGeneTable() {
+    const all = document.getElementById('allGeneTable');
+    if (!all) return;
+    const filtered = getFilteredGenes();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (genePage > totalPages) genePage = totalPages;
+    const start = (genePage - 1) * PAGE_SIZE;
+    const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+    if (pageItems.length === 0) {
+        all.innerHTML = '<tr><td colspan="6" class="loading">未找到匹配基因</td></tr>';
+    } else {
+        all.innerHTML = pageItems.map((g, i) => `
+            <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
+                <td>${start + i + 1}</td>
+                <td class="gene-id">${g.gene_id}</td>
+                <td><strong>${g.gene_name}</strong></td>
+                <td>${g.gene_desc || '-'}</td>
+                <td>${g.chromosome || '-'}</td>
+                <td>${g.strand || '-'}</td>
+                <td><button class="btn-detail" onclick="event.stopPropagation();showDetail('${g.gene_id}')">详情</button></td>
+            </tr>`).join('');
+    }
+    renderPagination(filtered.length, totalPages);
+}
+
+function renderPagination(total, totalPages) {
+    const el = document.getElementById('genePagination');
+    if (!el) return;
+    if (total <= PAGE_SIZE) {
+        el.innerHTML = '';
+        return;
+    }
+    let html = `<span class="page-info">共 ${total} 条 · 第 ${genePage}/${totalPages} 页</span>`;
+    html += `<button class="page-btn" onclick="genePage=1;renderGeneTable()" ${genePage===1?'disabled':''}>«</button>`;
+    html += `<button class="page-btn" onclick="genePage--;renderGeneTable()" ${genePage===1?'disabled':''}>‹</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === genePage || p === 1 || p === totalPages || Math.abs(p - genePage) <= 1) {
+            html += `<button class="page-btn ${p===genePage?'active':''}" onclick="genePage=${p};renderGeneTable()">${p}</button>`;
+        } else if (p === genePage - 2 || p === genePage + 2) {
+            html += `<span class="page-info">…</span>`;
+        }
+    }
+    html += `<button class="page-btn" onclick="genePage++;renderGeneTable()" ${genePage===totalPages?'disabled':''}>›</button>`;
+    html += `<button class="page-btn" onclick="genePage=${totalPages};renderGeneTable()" ${genePage===totalPages?'disabled':''}>»</button>`;
+    el.innerHTML = html;
+}
+
+// ========== 序列表格 ==========
 function renderSeqTable() {
     const el = document.getElementById('seqTable');
     if (!el) return;
-    el.innerHTML = allSeq.map((s, i) => `
+    el.innerHTML = allSeq.map((s, i) => {
+        const g = allGenes.find(x => x.gene_id === s.gene_id);
+        return `
         <tr>
             <td>${i + 1}</td>
             <td class="gene-id">${s.gene_id}</td>
+            <td><strong>${g ? g.gene_name : '-'}</strong></td>
             <td>${s.cds_length || '-'}</td>
             <td>${s.protein_length || '-'}</td>
             <td>${s.gc_content || '-'}</td>
             <td><button class="btn-detail" onclick="showDetail('${s.gene_id}')">查看</button></td>
-        </tr>`).join('') || '<tr><td colspan="6" class="loading">暂无序列</td></tr>';
+        </tr>`;
+    }).join('') || '<tr><td colspan="7" class="loading">暂无序列</td></tr>';
 }
 
+// ========== 组织卡片 ==========
 function renderTissueGrid() {
     const el = document.getElementById('tissueList');
     if (!el) return;
@@ -204,30 +286,7 @@ function renderTissueGrid() {
         </div>`).join('') || '<div class="loading">暂无组织数据</div>';
 }
 
-// ========== 图表 ==========
-function renderOverviewChart() {
-    const el = document.getElementById('chartOverview');
-    if (!el || allGenes.length === 0) return;
-    const chart = echarts.init(el);
-    const tissues = [...allTissues];
-    const genes = allGenes.slice(0, 6).map(g => g.gene_name);
-    chart.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data: tissues, bottom: 0, textStyle: { fontSize: 11 } },
-        grid: { left: '3%', right: '4%', bottom: '18%', containLabel: true },
-        xAxis: { type: 'category', data: genes, axisLabel: { rotate: 30, fontSize: 11 } },
-        yAxis: { type: 'value', name: 'TPM' },
-        series: tissues.map(t => ({
-            name: t, type: 'bar',
-            data: genes.map(n => {
-                const g = allGenes.find(x => x.gene_name === n);
-                const r = allExpr.find(e => e.gene_id === g.gene_id && e.tissue === t);
-                return r ? r.tpm : 0;
-            })
-        }))
-    });
-}
-
+// ========== 表达量总览图 ==========
 function renderFullExprChart() {
     const el = document.getElementById('chartExprFull');
     if (!el || allGenes.length === 0) return;
@@ -236,7 +295,7 @@ function renderFullExprChart() {
     const genes = allGenes.map(g => g.gene_name);
     chart.setOption({
         tooltip: { trigger: 'axis' },
-        legend: { data: tissues, bottom: 0 },
+        legend: { data: tissues, bottom: 0, type: 'scroll' },
         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
         xAxis: { type: 'category', data: genes, axisLabel: { rotate: 35 } },
         yAxis: { type: 'value', name: 'TPM' },
@@ -288,9 +347,9 @@ function renderHistoryList() {
 function renderSuggest(kw) {
     const el = document.getElementById('suggestList');
     const matches = kw
-        ? allGenes.filter(g => g.gene_name.toLowerCase().includes(kw.toLowerCase()) ||
-                               g.gene_id.toLowerCase().includes(kw.toLowerCase()) ||
-                               g.gene_desc.toLowerCase().includes(kw.toLowerCase())).slice(0, 8)
+        ? allGenes.filter(g => (g.gene_name || '').toLowerCase().includes(kw.toLowerCase()) ||
+                               (g.gene_id || '').toLowerCase().includes(kw.toLowerCase()) ||
+                               (g.gene_desc || '').toLowerCase().includes(kw.toLowerCase())).slice(0, 8)
         : allGenes.slice(0, 6);
     el.innerHTML = matches.map(g => `
         <div class="suggest-item" onclick="pickSuggest('${g.gene_name}')">
@@ -328,34 +387,78 @@ function clearHistory() {
     renderHistoryList();
 }
 
+// 搜索结果（分类 tab）
+let searchTab = 'genes';
+
 function doSearch() {
     const kw = document.getElementById('searchInput').value.trim();
     if (!kw) return;
-    // 存历史
     let list = getHistory().filter(h => h !== kw);
     list.unshift(kw);
     saveHistory(list.slice(0, 10));
     hideSearchPanel();
 
-    // 搜索结果
-    const results = allGenes.filter(g =>
-        g.gene_name.toLowerCase().includes(kw.toLowerCase()) ||
-        g.gene_id.toLowerCase().includes(kw.toLowerCase()) ||
-        (g.gene_desc && g.gene_desc.toLowerCase().includes(kw.toLowerCase()))
+    window._searchKw = kw;
+    const geneHits = allGenes.filter(g =>
+        (g.gene_name || '').toLowerCase().includes(kw.toLowerCase()) ||
+        (g.gene_id || '').toLowerCase().includes(kw.toLowerCase()) ||
+        (g.gene_desc || '').toLowerCase().includes(kw.toLowerCase())
     );
-    const body = document.getElementById('searchResultBody');
-    if (results.length === 0) {
-        body.innerHTML = '<div class="loading">未找到相关基因</div>';
-    } else {
-        const hl = (text) => text.replace(new RegExp(`(${kw})`, 'gi'), '<span style="background:var(--primary);padding:0 3px;border-radius:3px;">$1</span>');
-        body.innerHTML = results.map(g => `
-            <div class="comment-card" style="margin-bottom:12px;cursor:pointer;" onclick="closeSearchModal();showDetail('${g.gene_id}')">
-                <div style="font-weight:600;color:var(--title);margin-bottom:4px;">${hl(g.gene_name)} <small style="color:#888;">${g.gene_id}</small></div>
-                <div style="font-size:13px;color:var(--text);">${hl(g.gene_desc || '')}</div>
-            </div>`).join('');
-    }
+    const seqHits = allSeq.filter(s => s.gene_id.toLowerCase().includes(kw.toLowerCase()));
+
+    searchTab = 'genes';
+    renderSearchTabs(geneHits.length, seqHits.length);
+    renderSearchResults(geneHits, seqHits);
     document.getElementById('searchModal').style.display = 'flex';
 }
+
+function renderSearchTabs(nGenes, nSeq) {
+    const el = document.getElementById('searchTabs');
+    el.innerHTML = `
+        <button class="search-tab-btn ${searchTab==='genes'?'active':''}" onclick="switchSearchTab('genes')">基因 <span class="tab-count">${nGenes}</span></button>
+        <button class="search-tab-btn ${searchTab==='seq'?'active':''}" onclick="switchSearchTab('seq')">序列 <span class="tab-count">${nSeq}</span></button>`;
+}
+
+function switchSearchTab(tab) {
+    searchTab = tab;
+    const kw = window._searchKw || '';
+    const geneHits = allGenes.filter(g =>
+        (g.gene_name || '').toLowerCase().includes(kw.toLowerCase()) ||
+        (g.gene_id || '').toLowerCase().includes(kw.toLowerCase()) ||
+        (g.gene_desc || '').toLowerCase().includes(kw.toLowerCase())
+    );
+    const seqHits = allSeq.filter(s => s.gene_id.toLowerCase().includes(kw.toLowerCase()));
+    renderSearchTabs(geneHits.length, seqHits.length);
+    renderSearchResults(geneHits, seqHits);
+}
+
+function renderSearchResults(geneHits, seqHits) {
+    const body = document.getElementById('searchResultBody');
+    const hl = (text) => text.replace(new RegExp(`(${window._searchKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+
+    if (searchTab === 'genes') {
+        if (geneHits.length === 0) {
+            body.innerHTML = '<div class="loading">未找到相关基因</div>';
+            return;
+        }
+        body.innerHTML = geneHits.map(g => `
+            <div class="search-result-item" onclick="closeSearchModal();showDetail('${g.gene_id}')">
+                <div class="r-title">${hl(g.gene_name)} <small class="r-sub">${g.gene_id} · ${g.chromosome || '?'} · ${g.gene_biotype || ''}</small></div>
+                <div class="r-desc">${hl(g.gene_desc || '暂无描述')}</div>
+            </div>`).join('');
+    } else {
+        if (seqHits.length === 0) {
+            body.innerHTML = '<div class="loading">未找到相关序列</div>';
+            return;
+        }
+        body.innerHTML = seqHits.map(s => `
+            <div class="search-result-item" onclick="closeSearchModal();showDetail('${s.gene_id}')">
+                <div class="r-title">${hl(s.gene_id)} <small class="r-sub">CDS ${s.cds_length || '-'} bp · Protein ${s.protein_length || '-'} aa · GC ${s.gc_content || '-'}%</small></div>
+                <div class="r-desc">点击查看完整序列</div>
+            </div>`).join('');
+    }
+}
+
 function closeSearchModal() { document.getElementById('searchModal').style.display = 'none'; }
 
 // 点击外部关闭搜索面板
@@ -363,41 +466,40 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-wrap')) hideSearchPanel();
 });
 
-// ========== 基因详情 ==========
+// ========== 基因详情（对标 NCBI Gene 页面） ==========
 function showDetail(geneId) {
     const g = allGenes.find(x => x.gene_id === geneId);
     if (!g) return;
-    document.getElementById('modalTitle').textContent = `${g.gene_name} (${g.gene_id})`;
+    document.getElementById('modalTitle').textContent = `Gene: ${g.gene_name} (${g.gene_id})`;
     document.getElementById('modal').style.display = 'flex';
 
-    document.getElementById('detailBasic').innerHTML = `
-        <div class="detail-item"><div class="label">基因ID</div><div class="value">${g.gene_id}</div></div>
-        <div class="detail-item"><div class="label">基因名称</div><div class="value">${g.gene_name}</div></div>
-        <div class="detail-item"><div class="label">生物类型</div><div class="value">${g.gene_biotype || '-'}</div></div>
-        <div class="detail-item"><div class="label">染色体定位</div><div class="value">${g.chromosome || '-'} : ${g.start_pos || '-'}-${g.end_pos || '-'}</div></div>
-        <div class="detail-item"><div class="label">链方向</div><div class="value">${g.strand || '-'}</div></div>
-        <div class="detail-item"><div class="label">功能描述</div><div class="value">${g.gene_desc || '-'}</div></div>`;
-
+    // 基因标识区
     const seq = allSeq.find(s => s.gene_id === geneId);
-    const seqEl = document.getElementById('detailSeq');
-    if (seq) {
-        seqEl.innerHTML = `
-            <div class="seq-box">
-                <div class="seq-title">CDS序列 (${seq.cds_length || '-'} bp, GC: ${seq.gc_content || '-'}%)
-                    <button class="btn-secondary" style="padding:3px 10px;font-size:12px;float:right;" onclick="copySeq('${seq.cds_sequence}')">复制</button>
-                </div>
-                <div class="seq-text">${seq.cds_sequence || '暂无'}</div>
-            </div>
-            <div class="seq-box">
-                <div class="seq-title">蛋白序列 (${seq.protein_length || '-'} aa)
-                    <button class="btn-secondary" style="padding:3px 10px;font-size:12px;float:right;" onclick="copySeq('${seq.protein_sequence}')">复制</button>
-                </div>
-                <div class="seq-text">${seq.protein_sequence || '暂无'}</div>
-            </div>`;
-    } else {
-        seqEl.innerHTML = '<div class="loading">该基因暂无序列数据</div>';
-    }
+    document.getElementById('detailHeader').innerHTML = `
+        <div class="gene-name-line">
+            <span class="gene-name">${g.gene_name}</span>
+            <span class="badge">${g.gene_biotype || 'protein_coding'}</span>
+            <span class="badge-green">${g.chromosome || '?'}</span>
+        </div>
+        <div class="gene-aliases">
+            <strong>基因 ID：</strong><span class="gene-full-id">${g.gene_id}</span>
+            <span style="margin:0 10px;color:var(--text-light);">|</span>
+            <strong>物种：</strong><em>Diodon hystrix</em>
+        </div>`;
 
+    // 功能摘要
+    const desc = g.gene_desc || '暂无功能描述';
+    document.getElementById('detailSummary').innerHTML =
+        `<p><strong>${g.gene_name}</strong> 是密斑刺鲀（<em>Diodon hystrix</em>）基因组中的一个编码蛋白基因。${desc}。该基因位于 ${g.chromosome || '未定位染色体'}（${g.start_pos || '?'}-${g.end_pos || '?'}，${g.strand || '?'}链），编码产物长度为 ${seq ? (seq.protein_length || '?') : '?'} 个氨基酸。本数据库提供其 CDS 序列、蛋白质序列及多组织（${[...allTissues].join('、')}）表达谱数据。</p>`;
+
+    // 基因组定位
+    document.getElementById('detailGenomic').innerHTML = `
+        <div class="ctx-item"><div class="label">Chromosome</div><div class="value">${g.chromosome || '-'}</div></div>
+        <div class="ctx-item"><div class="label">Location</div><div class="value">${g.start_pos || '-'} - ${g.end_pos || '-'}</div></div>
+        <div class="ctx-item"><div class="label">Strand</div><div class="value">${g.strand || '-'}</div></div>
+        <div class="ctx-item"><div class="label">Biotype</div><div class="value">${g.gene_biotype || '-'}</div></div>`;
+
+    // 表达谱：图 + 表格
     const expr = allExpr.filter(e => e.gene_id === geneId);
     const chartEl = document.getElementById('detailChart');
     if (expr.length > 0) {
@@ -409,20 +511,98 @@ function showDetail(geneId) {
             xAxis: { type: 'category', data: expr.map(e => e.tissue) },
             yAxis: { type: 'value', name: 'TPM' },
             series: [{ name: 'TPM', type: 'bar', data: expr.map(e => e.tpm),
-                       itemStyle: { color: '#B89FE8' } }]
+                       itemStyle: { color: '#B89FE8' }, barMaxWidth: 42 }]
         });
+        document.getElementById('detailExprTable').innerHTML = `
+            <table class="mini-table">
+                <thead><tr><th>组织</th><th>TPM</th><th>FPKM</th><th>重复</th></tr></thead>
+                <tbody>${expr.map(e => `
+                    <tr><td><strong>${e.tissue}</strong></td><td>${e.tpm ?? '-'}</td><td>${e.fpkm ?? '-'}</td><td>${e.replicate ?? '-'}</td></tr>
+                `).join('')}</tbody>
+            </table>`;
     } else {
         chartEl.innerHTML = '<div class="loading">暂无表达量数据</div>';
+        document.getElementById('detailExprTable').innerHTML = '';
+    }
+
+    // 序列（折叠 + 复制 + 下载）
+    const seqEl = document.getElementById('detailSeq');
+    if (seq) {
+        seqEl.innerHTML = `
+            <div class="seq-box">
+                <div class="seq-title">CDS 序列 (${seq.cds_length || '-'} bp · GC ${seq.gc_content || '-'}%)
+                    <button class="btn-mini" style="float:right;" onclick="copySeq('${seq.cds_sequence || ''}')">复制</button>
+                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadSeq('${g.gene_id}','cds','${seq.cds_sequence || ''}')">FASTA</button>
+                </div>
+                <div class="seq-text" id="seqCds">${seq.cds_sequence || '暂无'}</div>
+                <div class="seq-actions">
+                    <button class="btn-mini" onclick="toggleSeq('seqCds', this)">展开/折叠</button>
+                </div>
+            </div>
+            <div class="seq-box">
+                <div class="seq-title">蛋白序列 (${seq.protein_length || '-'} aa)
+                    <button class="btn-mini" style="float:right;" onclick="copySeq('${seq.protein_sequence || ''}')">复制</button>
+                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadSeq('${g.gene_id}','pep','${seq.protein_sequence || ''}')">FASTA</button>
+                </div>
+                <div class="seq-text" id="seqPep">${seq.protein_sequence || '暂无'}</div>
+                <div class="seq-actions">
+                    <button class="btn-mini" onclick="toggleSeq('seqPep', this)">展开/折叠</button>
+                </div>
+            </div>`;
+    } else {
+        seqEl.innerHTML = '<div class="loading">该基因暂无序列数据</div>';
+    }
+
+    // 外部链接（NCBI / UniProt / NCBI Protein）
+    const name = encodeURIComponent(g.gene_name);
+    document.getElementById('detailLinks').innerHTML = `
+        <a class="ext-link" href="https://www.ncbi.nlm.nih.gov/gene/?term=${name}" target="_blank" rel="noopener">
+            <span class="ext-icon">🧬</span> NCBI Gene
+        </a>
+        <a class="ext-link" href="https://www.uniprot.org/uniprotkb?query=${name}" target="_blank" rel="noopener">
+            <span class="ext-icon">🔬</span> UniProt
+        </a>
+        <a class="ext-link" href="https://www.ncbi.nlm.nih.gov/protein/?term=${name}" target="_blank" rel="noopener">
+            <span class="ext-icon">📄</span> NCBI Protein
+        </a>`;
+}
+
+function toggleSeq(id, btn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const expanded = el.style.maxHeight && el.style.maxHeight !== '150px';
+    if (expanded) {
+        el.style.maxHeight = '150px';
+    } else {
+        el.style.maxHeight = el.scrollHeight + 'px';
     }
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
 function copySeq(text) {
     navigator.clipboard.writeText(text).then(() => {
         const tip = document.getElementById('commentTip');
-        tip.textContent = '已复制到剪贴板';
-        setTimeout(() => tip.textContent = '', 2000);
+        if (tip) {
+            tip.textContent = '已复制到剪贴板';
+            setTimeout(() => tip.textContent = '', 2000);
+        }
     });
 }
+
+function downloadSeq(geneId, type, sequence) {
+    const header = `>${geneId}|${type}|Diodon_hystrix`;
+    const blob = new Blob([header + '\n' + sequence + '\n'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${geneId}_${type}.fasta`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
 document.getElementById('modal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
 });
@@ -446,6 +626,7 @@ function loadComments() {
     const el2 = document.getElementById('statComments2');
     if (el2) el2.textContent = list.length;
     const el = document.getElementById('commentList');
+    if (!el) return;
     if (list.length === 0) {
         el.innerHTML = '<div class="loading">暂无留言，来抢沙发吧～</div>';
         return;
@@ -475,7 +656,7 @@ function loadComments() {
 
 function toggleReplies(i) {
     const el = document.getElementById('replies-' + i);
-    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+    if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
 }
 
 function submitComment() {
@@ -520,4 +701,16 @@ function formatTime(ts) {
     const d = new Date(ts);
     const p = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// ========== 引用复制 ==========
+function copyCitation() {
+    const text = 'DiodonDB: A Multi-omics Gene Database for Diodon hystrix. v1.1. 2026. Available at: https://yscc666.github.io/puffer-db/';
+    navigator.clipboard.writeText(text).then(() => {
+        const tip = document.getElementById('commentTip');
+        if (tip) {
+            tip.textContent = '引用已复制';
+            setTimeout(() => tip.textContent = '', 2000);
+        }
+    });
 }
