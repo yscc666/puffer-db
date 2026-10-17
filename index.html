@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DiodonDB | 密斑刺鲀基因数据库</title>
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -373,10 +373,12 @@
                     <p><strong>数据库名称：</strong>密斑刺鲀多组学基因数据库 (DiodonDB)</p>
                     <p><strong>版本：</strong>v1.3 (2026.10)</p>
                     <p><strong>数据类型：</strong>转录组 (Transcriptome)</p>
-                    <p><strong>物种：</strong>密斑刺鲀 <em>Diodon hystrix</em></p>
+                    <p><strong>物种：</strong>密斑刺鲀 <em>Diodon hystrix</em> (Linnaeus, 1758)</p>
                     <p><strong>技术栈：</strong>Supabase (PostgreSQL) + HTML/CSS/JavaScript + ECharts</p>
                     <p><strong>部署：</strong>GitHub Pages 静态托管</p>
                     <p><strong>用途：</strong>本科毕业论文设计作品，用于密斑刺鲀基因资源的查询与可视化展示。</p>
+                    <h4 style="margin-top:16px; color:var(--title); font-size:14px; font-weight:600;">物种研究背景</h4>
+                    <p class="about-intro">密斑刺鲀（<em>Diodon hystrix</em>）隶属鲀形目（Tetraodontiformes）刺鲀科（Diodontidae），是热带—亚热带珊瑚礁生态系统中极具代表性的海洋鱼类，其表型与生理特征集中体现了三种独特的演化适应策略：<strong>（1）被动防御机制</strong>——遭遇胁迫时经口快速吸入海水使体腔膨大，皮肤随之张紧并竖起体表坚硬的棘刺，形成机械性防御屏障，该过程对皮肤结缔组织的弹性与可变形性提出了极高的结构要求；<strong>（2）毒素代谢系统</strong>——体内可富集河豚毒素（Tetrodotoxin, TTX），并通过 TTX 结合蛋白（TTXBP）及骨骼肌电压门控钠通道（SCN4A）关键位点的氨基酸替换，实现对自身 TTX 毒性效应的耐受，构成"积累—转运—耐受"的完整毒素代谢回路；<strong>（3）环境适应能力</strong>——对海洋污染物的氧化解毒代谢（CYP 家族）及免疫应激响应（TNF / IL-6 信号通路）表现出显著的可塑性。上述特征使密斑刺鲀成为研究极端防御行为、毒素共进化及海洋生态适应的理想模式物种。</p>
                 </div>
                 <div class="about-section">
                     <h3>数据来源</h3>
@@ -396,19 +398,32 @@
                 </div>
                 <div class="about-section">
                     <h3>RNA-seq 数据分析流程</h3>
-                    <p>本数据库表达谱数据基于以下标准转录组分析流程生成：</p>
-                    <div class="step-flow">
-                        <div class="step-item"><div class="step-num">1</div><div class="step-body"><strong>样本采集</strong><small>密斑刺鲀多组织取样</small></div></div>
-                        <div class="step-arrow">→</div>
-                        <div class="step-item"><div class="step-num">2</div><div class="step-body"><strong>RNA 提取与建库</strong><small>总 RNA → mRNA 富集 → 文库构建</small></div></div>
-                        <div class="step-arrow">→</div>
-                        <div class="step-item"><div class="step-num">3</div><div class="step-body"><strong>高通量测序</strong><small>Illumina 双端测序 (PE150)</small></div></div>
-                        <div class="step-arrow">→</div>
-                        <div class="step-item"><div class="step-num">4</div><div class="step-body"><strong>质量控制</strong><small>FastQC / Trimmomatic 质控与过滤</small></div></div>
-                        <div class="step-arrow">→</div>
-                        <div class="step-item"><div class="step-num">5</div><div class="step-body"><strong>比对与定量</strong><small>HISAT2 比对 → featureCounts / StringTie 定量</small></div></div>
-                        <div class="step-arrow">→</div>
-                        <div class="step-item"><div class="step-num">6</div><div class="step-body"><strong>功能注释</strong><small>GO / KEGG / Pfam 注释与富集分析</small></div></div>
+                    <p>本数据库转录组表达谱数据基于以下标准化生物信息学分析流程生成，全部分析步骤在 Linux (Ubuntu 20.04 LTS) 环境下执行：</p>
+                    <div class="pipeline-list">
+                        <div class="pipeline-step">
+                            <h4>① 样本采集与总 RNA 提取</h4>
+                            <p>对健康成年密斑刺鲀进行多组织平行取样，覆盖皮肤（Skin）、肝脏（Liver）、肌肉（Muscle）、脑（Brain）、性腺（Testis）与鳃（Gill）6 类组织，每组织设置 3 个生物学重复，液氮速冻后于 −80 ℃ 保存。采用 TRIzol 法提取总 RNA，经 1% 琼脂糖凝胶电泳评估完整性，Agilent 2100 Bioanalyzer 检测 RNA 完整性（RIN ≥ 8.0 方可进入建库），NanoDrop 2000 测定浓度与纯度（OD260/280 介于 1.8–2.2）。</p>
+                        </div>
+                        <div class="pipeline-step">
+                            <h4>② 文库构建与高通量测序</h4>
+                            <p>采用 oligo(dT) 磁珠对总 RNA 进行 poly(A) mRNA 富集，经片段化、cDNA 合成、末端修复、加 A 尾及接头连接后 PCR 扩增构建链特异性文库。文库质检合格后，于 Illumina NovaSeq 6000 平台采用 PE150（双端 150 bp）测序策略完成测序，每样本目标数据量 ≥ 6 Gb，以满足低丰度基因检出的测序深度要求。</p>
+                        </div>
+                        <div class="pipeline-step">
+                            <h4>③ 原始数据质控与过滤</h4>
+                            <p>使用 FastQC v0.11.9 对原始下机数据（Raw Reads）进行碱基质量、GC 含量、接头污染及序列重复率的多维度质量评估；随后利用 Trimmomatic v0.39 执行数据清洗，核心参数为 <code>ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36</code>，去除测序接头、低质量碱基及过短读段，最终获得 Clean Reads 用于后续分析。</p>
+                        </div>
+                        <div class="pipeline-step">
+                            <h4>④ 基因组比对与表达定量</h4>
+                            <p>使用 HISAT2 v2.2.1（参数 <code>--dta --max-intronlen 500000</code>）将 Clean Reads 比对至密斑刺鲀 <em>Diodon hystrix</em> 参考基因组，经 SAMtools v1.15 排序并去除 PCR 重复；基于基因注释文件，使用 featureCounts（参数 <code>-T 8 -p --countReadPairs</code>）统计各基因的 reads 数，并进一步计算 TPM（Transcripts Per Million）与 FPKM 作为标准化表达量指标。</p>
+                        </div>
+                        <div class="pipeline-step">
+                            <h4>⑤ 差异表达分析与功能注释</h4>
+                            <p>以 DESeq2 开展多组织间差异表达分析，筛选标准为 |log2(Fold Change)| ≥ 1 且调整后 P 值（padj）&lt; 0.05；功能注释层面，利用 Trinotate 与 InterProScan 对转录本进行系统注释，比对数据库涵盖 Swiss-Prot（蛋白功能）、Gene Ontology（GO：分子功能 / 生物学过程 / 细胞组分）及 KEGG（代谢与信号通路），并结合 Pfam 完成蛋白结构域预测。</p>
+                        </div>
+                        <div class="pipeline-step">
+                            <h4>⑥ 前端可视化呈现</h4>
+                            <p>分析结果经 PostgreSQL 关系型数据库（Supabase）结构化存储，前端基于 HTML5 + CSS3 + JavaScript 与 ECharts 可视化库实现交互式呈现，包括多组织表达热图、GC 含量分布、染色体基因密度分布及蛋白理化性质统计图表，支持关键词检索、基因详情查询与数据一键导出（CSV / FASTA）。</p>
+                        </div>
                     </div>
                 </div>
                 <div class="about-section">
