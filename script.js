@@ -318,17 +318,58 @@ function renderTissueGrid() {
 function renderFullExprChart() {
     const el = document.getElementById('chartExprFull');
     if (!el || allGenes.length === 0) return;
+    if (el.__init) { el.__init.dispose(); }
     const chart = echarts.init(el);
+    el.__init = chart;
     const tissues = [...allTissues];
     const genes = allGenes.map(g => g.gene_name);
+    const palette = ['#a29bfe', '#fdcbe6', '#74b9ff', '#c9b6f5', '#fd79a8', '#9ad0f5'];
     chart.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data: tissues, bottom: 0, type: 'scroll' },
-        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-        xAxis: { type: 'category', data: genes, axisLabel: { rotate: 35 } },
-        yAxis: { type: 'value', name: 'TPM' },
+        color: palette,
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(162,155,254,0.08)' } },
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            borderColor: '#d8dcee',
+            borderWidth: 1,
+            padding: [10, 14],
+            textStyle: { color: '#2d3436', fontSize: 12 },
+            formatter: function(params) {
+                const gName = params[0].axisValue;
+                const g = allGenes.find(x => x.gene_name === gName);
+                let html = `<div style="font-weight:600;color:#2d3454;margin-bottom:6px;">${gName}</div>`;
+                params.forEach(p => {
+                    const r = g && allExpr.find(e => e.gene_id === g.gene_id && e.tissue === p.seriesName);
+                    html += `<div style="display:flex;justify-content:space-between;gap:14px;align-items:center;">
+                        <span>${p.marker}${p.seriesName}</span>
+                        <span><strong style="color:#2d3454;">${p.value}</strong>
+                        ${r && r.fpkm ? `<span style="color:#8a8fa3;font-size:11px;margin-left:6px;">FPKM ${r.fpkm}</span>` : ''}</span></div>`;
+                });
+                return html;
+            }
+        },
+        legend: {
+            data: tissues, bottom: 0, icon: 'roundRect',
+            itemWidth: 14, itemHeight: 6, itemGap: 14,
+            textStyle: { color: '#8a8fa3', fontSize: 11 }
+        },
+        grid: { left: '3%', right: '3%', bottom: '16%', top: '6%', containLabel: true },
+        xAxis: {
+            type: 'category', data: genes,
+            axisLabel: { rotate: 28, interval: 0, color: '#8a8fa3', fontSize: 11 },
+            axisLine: { lineStyle: { color: '#e2e5f2' } },
+            axisTick: { show: false }
+        },
+        yAxis: {
+            type: 'value', name: 'TPM',
+            nameTextStyle: { color: '#8a8fa3', padding: [0, 0, 0, 0] },
+            axisLabel: { color: '#8a8fa3' },
+            splitLine: { lineStyle: { color: '#f0f0f8', type: 'dashed' } }
+        },
         series: tissues.map(t => ({
-            name: t, type: 'bar',
+            name: t, type: 'bar', barMaxWidth: 20,
+            itemStyle: { borderRadius: [4, 4, 0, 0] },
+            emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(108,92,231,0.25)' } },
             data: genes.map(n => {
                 const g = allGenes.find(x => x.gene_name === n);
                 const r = allExpr.find(e => e.gene_id === g.gene_id && e.tissue === t);
@@ -391,18 +432,38 @@ function renderHeatmap() {
     chart.setOption({
         tooltip: {
             position: 'top',
-            formatter: p => `${tissues[p.value[0]]} · ${genes[p.value[1]]}<br/>TPM: <strong>${p.value[2]}</strong>`
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            borderColor: '#d8dcee',
+            borderWidth: 1,
+            padding: [10, 14],
+            textStyle: { color: '#2d3436', fontSize: 12 },
+            formatter: p => `<div style="font-weight:600;color:#2d3454;margin-bottom:4px;">${tissues[p.value[0]]} · ${genes[p.value[1]]}</div>TPM: <strong style="color:#6c5ce7;">${p.value[2]}</strong>`
         },
-        grid: { left: '3%', right: '12%', bottom: '10%', top: '3%', containLabel: true },
-        xAxis: { type: 'category', data: tissues, name: '组织', splitArea: { show: true } },
-        yAxis: { type: 'category', data: genes, name: '基因', splitArea: { show: true } },
+        grid: { left: '3%', right: '13%', bottom: '6%', top: '4%', containLabel: true },
+        xAxis: {
+            type: 'category', data: tissues, name: '组织',
+            nameTextStyle: { color: '#8a8fa3' },
+            axisLabel: { color: '#8a8fa3' },
+            axisLine: { lineStyle: { color: '#e2e5f2' } },
+            splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0)', 'rgba(250,249,255,1)'] } }
+        },
+        yAxis: {
+            type: 'category', data: genes, name: '基因',
+            nameTextStyle: { color: '#8a8fa3' },
+            axisLabel: { color: '#8a8fa3' },
+            axisLine: { lineStyle: { color: '#e2e5f2' } },
+            splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0)', 'rgba(250,249,255,1)'] } }
+        },
         visualMap: {
             min: 0, max: maxV, calculable: true, orient: 'vertical', right: 0, top: 'center',
-            inRange: { color: ['#f6f3ff', '#c9b6f5', '#8e7bd6', '#5b4a9e'] }
+            text: ['高', '低'],
+            textStyle: { color: '#8a8fa3' },
+            inRange: { color: ['#f6f3ff', '#e2d8fb', '#b89fe8', '#8e7bd6', '#5b4a9e'] }
         },
         series: [{
-            name: 'TPM', type: 'heatmap',
-            data, label: { show: false },
+            name: 'TPM', type: 'heatmap', data: data,
+            label: { show: maxV < 50, color: '#5b4a9e', fontSize: 10, fontWeight: 600 },
+            itemStyle: { borderColor: '#ffffff', borderWidth: 2, borderRadius: 6 },
             emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)' } }
         }]
     });
