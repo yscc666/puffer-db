@@ -884,6 +884,8 @@ function showDetail(geneId) {
         document.getElementById('detailDomain').innerHTML = '<div class="tag-empty">暂无结构域数据</div>';
     }
 
+
+
     // 蛋白理化性质 + 氨基酸组成（从序列实时计算）
     const propsEl = document.getElementById('detailProps');
     const aminoEl = document.getElementById('detailAminoChart');
@@ -972,6 +974,70 @@ function showDetail(geneId) {
         <a class="ext-link" href="https://www.ncbi.nlm.nih.gov/protein/?term=${name}" target="_blank" rel="noopener">
             <span class="ext-icon">📄</span> NCBI Protein
         </a>`;
+}
+
+// ========== 功能注释检索（GO / KEGG / Domain） ==========
+function annoSuggest(kw) {
+    const box = document.getElementById('annoSuggestBox');
+    if (!box) return;
+    if (!kw.trim()) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    const k = kw.trim().toUpperCase();
+    const hits = allGenes.filter(g => g.gene_name.toUpperCase().includes(k) || g.gene_id.toUpperCase().includes(k)).slice(0, 8);
+    if (hits.length === 0) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.innerHTML = hits.map(g => `<div class="suggest-item" onmousedown="event.preventDefault();pickAnno('${g.gene_id}')">
+        <strong>${g.gene_name}</strong><small>${g.gene_id} · ${g.chromosome || '-'}</small></div>`).join('');
+    box.style.display = 'block';
+}
+function pickAnno(geneId) {
+    const g = allGenes.find(x => x.gene_id === geneId);
+    if (g) document.getElementById('annoInput').value = g.gene_name;
+    document.getElementById('annoSuggestBox').style.display = 'none';
+    runAnnoSearch();
+}
+function runAnnoSearch() {
+    const box = document.getElementById('annoResult');
+    const sg = document.getElementById('annoSuggestBox');
+    if (sg) sg.style.display = 'none';
+    if (!box) return;
+    const input = document.getElementById('annoInput').value.trim().toUpperCase();
+    if (!input) { box.innerHTML = '<div class="tag-empty">请输入基因名称或基因 ID 后查询</div>'; return; }
+    const g = allGenes.find(x => x.gene_id.toUpperCase() === input)
+        || allGenes.find(x => x.gene_name.toUpperCase() === input)
+        || allGenes.find(x => x.gene_name.toUpperCase().includes(input) || x.gene_id.toUpperCase().includes(input));
+    if (!g) { box.innerHTML = '<div class="tag-empty">未找到匹配基因，请尝试其他名称（如 TTXBP、COL1A1、TNF、IL6、SCN4A）</div>'; return; }
+
+    const goList = allGO.filter(x => x.gene_id === g.gene_id);
+    const goCats = [['MF', '分子功能 Molecular Function'], ['BP', '生物学过程 Biological Process'], ['CC', '细胞组分 Cellular Component']];
+    const goHtml = goList.length ? goCats.map(([cat, label]) => {
+        const items = goList.filter(x => x.category === cat);
+        if (items.length === 0) return '';
+        return `<div class="tag-cat">${label}</div><div class="tag-list">${items.map(x => `
+            <a class="tag-chip ${cat.toLowerCase()}" href="https://amigo.geneontology.org/amigo/term/${x.go_id}" target="_blank" rel="noopener" title="点击查看 GO 详情">
+                <span class="tag-id">${x.go_id}</span>${x.go_term}</a>`).join('')}</div>`;
+    }).join('') : '<div class="tag-empty">暂无 GO 注释数据</div>';
+
+    const keggList = allKegg.filter(x => x.gene_id === g.gene_id);
+    const keggHtml = keggList.length ? `<div class="tag-list">${keggList.map(x => `
+        <a class="tag-chip kegg" href="https://www.kegg.jp/pathway/${x.pathway_id}" target="_blank" rel="noopener" title="点击查看 KEGG 通路详情">
+            <span class="tag-id">${x.pathway_id}</span>${x.pathway_name}</a>`).join('')}</div>`
+        : '<div class="tag-empty">暂无 KEGG 通路数据</div>';
+
+    const domList = allDomains.filter(x => x.gene_id === g.gene_id);
+    const domHtml = domList.length ? `<div class="tag-list">${domList.map(x => `
+        <a class="tag-chip domain" href="https://www.ebi.ac.uk/interpro/entry/pfam/${x.domain_id}" target="_blank" rel="noopener" title="点击查看 InterPro 结构域详情">
+            <span class="tag-id">${x.domain_id}</span>${x.domain_name}</a>`).join('')}</div>`
+        : '<div class="tag-empty">暂无结构域数据</div>';
+
+    box.innerHTML = `
+        <div class="anno-gene-header">
+            <strong style="font-size:15px;color:#3a3a58;"><i>${g.gene_name}</i></strong>
+            <span class="anno-id">${g.gene_id}</span>
+            <span class="anno-chr">${g.chromosome || '-'} · ${g.strand || '-'} 链</span>
+            <button class="btn-detail" style="margin-left:auto;" onclick="showDetail('${g.gene_id}')">查看完整详情</button>
+        </div>
+        <div class="anno-section"><div class="tag-cat" style="font-size:13px;color:#3a3a58;">Gene Ontology</div>${goHtml}</div>
+        <div class="anno-section"><div class="tag-cat" style="font-size:13px;color:#3a3a58;">KEGG Pathways</div>${keggHtml}</div>
+        <div class="anno-section"><div class="tag-cat" style="font-size:13px;color:#3a3a58;">蛋白结构域 Protein Domains</div>${domHtml}</div>`;
 }
 
 function toggleSeq(id, btn) {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DiodonDB | 密斑刺鲀基因数据库</title>
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -208,6 +208,19 @@
     <div id="page-genes" class="page" style="display:none;">
         <section class="container">
             <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>基因注释</span></nav>
+            <div class="anno-panel">
+                <div class="anno-head">
+                    <h3 style="margin:0;">功能注释检索 <span class="badge" style="margin-left:8px;">GO · KEGG · Domain</span></h3>
+                </div>
+                <p style="margin:8px 0 0;color:var(--text-light);font-size:13.5px;">输入基因名称或基因 ID，查看该基因注释到的 GO 功能条目、KEGG 代谢/信号通路与蛋白结构域（条目可点击跳转权威数据库）。</p>
+                <div class="anno-search">
+                    <input type="text" id="annoInput" placeholder="输入基因名（如 COL1A1）或基因 ID（如 DH_GENE_00102）"
+                           oninput="annoSuggest(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();runAnnoSearch();}">
+                    <button class="btn-primary" onclick="runAnnoSearch()">查询注释</button>
+                    <div id="annoSuggestBox" class="suggest-box" style="display:none;"></div>
+                </div>
+                <div id="annoResult"></div>
+            </div>
             <div class="card">
                 <div class="card-head">
                     <h2>基因注释列表</h2>
@@ -561,6 +574,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=13"></script>
+    <script src="script.js?v=14"></script>
 </body>
 </html>
