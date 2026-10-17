@@ -98,6 +98,32 @@ function initBackTop() {
 }
 function scrollTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
+// ========== 首页统计卡片自动计算（独立函数） ==========
+function updateDashboardStats() {
+    const g = allGenes || [];
+    const s = allSeq || [];
+    const e = allExpr || [];
+    const tissues = new Set();
+    e.forEach(x => tissues.add(x.tissue));
+    // 带 GO 注释的基因数量（按 gene_id 去重）
+    const goGenes = new Set((allGO || []).map(x => x.gene_id)).size;
+    const fill = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    // 主统计卡片
+    fill('statGenes', g.length);
+    fill('statSeq', s.length);
+    fill('statExpr', e.length);
+    fill('statTissues', tissues.size);
+    fill('statGO', (allGO || []).length);
+    fill('statKegg', (allKegg || []).length);
+    // 首页数据概览条（副卡）
+    fill('statGenes2', g.length);
+    fill('statSeq2', s.length);
+    fill('statExpr2', e.length);
+    fill('statTissues2', tissues.size);
+    // 预留：GO 注释基因数（若后续新增卡片可直接使用）
+    fill('statGoGenes', goGenes);
+}
+
 // ========== 数据加载 ==========
 async function loadData() {
     try {
@@ -117,20 +143,8 @@ async function loadData() {
         allDomains = domRes.data || [];
         allExpr.forEach(e => allTissues.add(e.tissue));
 
-        document.getElementById('statGenes').textContent = allGenes.length;
-        document.getElementById('statSeq').textContent = allSeq.length;
-        document.getElementById('statExpr').textContent = allExpr.length;
-        document.getElementById('statTissues').textContent = allTissues.size;
-        document.getElementById('statGO').textContent = allGO.length;
-        document.getElementById('statKegg').textContent = allKegg.length;
-        const el1 = document.getElementById('statGenes2');
-        if (el1) el1.textContent = allGenes.length;
-        const el2 = document.getElementById('statSeq2');
-        if (el2) el2.textContent = allSeq.length;
-        const el3 = document.getElementById('statExpr2');
-        if (el3) el3.textContent = allExpr.length;
-        const el4 = document.getElementById('statTissues2');
-        if (el4) el4.textContent = allTissues.size;
+        // 数据就绪后统一刷新统计卡片
+        updateDashboardStats();
 
         // 染色体筛选
         const chrs = [...new Set(allGenes.map(g => g.chromosome).filter(Boolean))].sort();
