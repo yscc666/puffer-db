@@ -24,7 +24,7 @@
     <!-- 顶部导航（对标 NCBI） -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-brand" onclick="goHome()">
+            <div class="nav-brand" onclick="event.preventDefault();goHome()">
                 <span class="nav-logo-icon">🐡</span>
                 <div class="nav-title">
                     <span class="nav-logo">DiodonDB</span>
@@ -32,13 +32,13 @@
                 </div>
             </div>
             <div class="nav-menu" id="navMenu">
-                <a class="nav-link" data-page="home" href="javascript:void(0)" onclick="goPage('home')">首页</a>
-                <a class="nav-link" data-page="genes" href="javascript:void(0)" onclick="goPage('genes')">基因</a>
-                <a class="nav-link" data-page="sequence" href="javascript:void(0)" onclick="goPage('sequence')">序列</a>
-                <a class="nav-link" data-page="expression" href="javascript:void(0)" onclick="goPage('expression')">表达</a>
-                <a class="nav-link" data-page="tissues" href="javascript:void(0)" onclick="goPage('tissues')">组织</a>
-                <a class="nav-link" data-page="comments" href="javascript:void(0)" onclick="goPage('comments')">社区</a>
-                <a class="nav-link" data-page="about" href="javascript:void(0)" onclick="goPage('about')">关于</a>
+                <a class="nav-link" data-page="home" href="#home" onclick="event.preventDefault();goPage('home')">首页</a>
+                <a class="nav-link" data-page="genes" href="#genes" onclick="event.preventDefault();goPage('genes')">基因</a>
+                <a class="nav-link" data-page="sequence" href="#sequence" onclick="event.preventDefault();goPage('sequence')">序列</a>
+                <a class="nav-link" data-page="expression" href="#expression" onclick="event.preventDefault();goPage('expression')">表达</a>
+                <a class="nav-link" data-page="tissues" href="#tissues" onclick="event.preventDefault();goPage('tissues')">组织</a>
+                <a class="nav-link" data-page="comments" href="#comments" onclick="event.preventDefault();goPage('comments')">社区</a>
+                <a class="nav-link" data-page="about" href="#about" onclick="event.preventDefault();goPage('about')">关于</a>
             </div>
             <div class="nav-right">
                 <span class="nav-meta">Build 2026.10</span>
@@ -75,10 +75,10 @@
                         </div>
                         <div class="search-tags">
                             <span class="search-tag-label">热门：</span>
-                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('ACTB')">ACTB</a>
-                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('GAPDH')">GAPDH</a>
-                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('TNF')">TNF</a>
-                            <a class="search-tag" href="javascript:void(0)" onclick="quickSearch('TP53')">TP53</a>
+                            <a class="search-tag" href="#" onclick="event.preventDefault();quickSearch('ACTB')">ACTB</a>
+                            <a class="search-tag" href="#" onclick="event.preventDefault();quickSearch('GAPDH')">GAPDH</a>
+                            <a class="search-tag" href="#" onclick="event.preventDefault();quickSearch('TNF')">TNF</a>
+                            <a class="search-tag" href="#" onclick="event.preventDefault();quickSearch('TP53')">TP53</a>
                         </div>
                         <div id="searchPanel" class="search-panel" style="display:none;">
                             <div class="search-panel-section">
@@ -151,7 +151,7 @@
 
                 <!-- 右：功能入口 -->
                 <div class="nav-grid">
-                    <div class="nav-entry" onclick="goPage('genes')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('genes')">
                         <div class="nav-entry-icon">🧬</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">基因注释</div>
@@ -159,7 +159,7 @@
                             <div class="nav-entry-stat"><span id="statGenes2">--</span> 条记录</div>
                         </div>
                     </div>
-                    <div class="nav-entry" onclick="goPage('sequence')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('sequence')">
                         <div class="nav-entry-icon">📝</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">基因序列</div>
@@ -167,7 +167,7 @@
                             <div class="nav-entry-stat"><span id="statSeq2">--</span> 条序列</div>
                         </div>
                     </div>
-                    <div class="nav-entry" onclick="goPage('expression')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('expression')">
                         <div class="nav-entry-icon">📊</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">表达谱</div>
@@ -175,7 +175,7 @@
                             <div class="nav-entry-stat"><span id="statExpr2">--</span> 条记录</div>
                         </div>
                     </div>
-                    <div class="nav-entry" onclick="goPage('tissues')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('tissues')">
                         <div class="nav-entry-icon">🔬</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">组织分类</div>
@@ -183,7 +183,7 @@
                             <div class="nav-entry-stat"><span id="statTissues2">--</span> 种组织</div>
                         </div>
                     </div>
-                    <div class="nav-entry" onclick="goPage('comments')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('comments')">
                         <div class="nav-entry-icon">💬</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">社区讨论</div>
@@ -191,7 +191,7 @@
                             <div class="nav-entry-stat"><span id="statComments2">--</span> 条留言</div>
                         </div>
                     </div>
-                    <div class="nav-entry" onclick="goPage('about')">
+                    <div class="nav-entry" onclick="event.preventDefault();goPage('about')">
                         <div class="nav-entry-icon">ℹ️</div>
                         <div class="nav-entry-body">
                             <div class="nav-entry-title">关于数据库</div>
@@ -207,7 +207,7 @@
     <!-- ==================== 基因列表页 ==================== -->
     <div id="page-genes" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>基因注释</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>基因注释</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>基因注释列表</h2>
@@ -273,7 +273,7 @@
     <!-- ==================== 序列记录页 ==================== -->
     <div id="page-sequence" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>基因序列</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>基因序列</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>CDS / Protein 序列</h2>
@@ -296,7 +296,7 @@
     <!-- ==================== 表达量总览页 ==================== -->
     <div id="page-expression" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>表达谱</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>表达谱</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>多组织基因表达谱 (TPM)</h2>
@@ -319,7 +319,7 @@
     <!-- ==================== 组织信息页 ==================== -->
     <div id="page-tissues" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>组织分类</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>组织分类</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>组织类型</h2>
@@ -335,7 +335,7 @@
     <!-- ==================== 评论区页 ==================== -->
     <div id="page-comments" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>社区讨论</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>社区讨论</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>社区讨论</h2>
@@ -363,7 +363,7 @@
     <!-- ==================== 关于页 ==================== -->
     <div id="page-about" class="page" style="display:none;">
         <section class="container">
-            <nav class="breadcrumb"><a href="javascript:void(0)" onclick="goHome()">首页</a> / <span>关于</span></nav>
+            <nav class="breadcrumb"><a href="#" onclick="event.preventDefault();goHome()">首页</a> / <span>关于</span></nav>
             <div class="card">
                 <div class="card-head">
                     <h2>关于 DiodonDB</h2>
@@ -410,15 +410,15 @@
                         </div>
                         <div class="pipeline-step">
                             <h4>③ 原始数据质控与过滤</h4>
-                            <p>使用 FastQC v0.11.9 对原始下机数据（Raw Reads）进行碱基质量、GC 含量、接头污染及序列重复率的多维度质量评估；随后利用 Trimmomatic v0.39 执行数据清洗，核心参数为 <code>ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36</code>，去除测序接头、低质量碱基及过短读段，最终获得 Clean Reads 用于后续分析。</p>
+                            <p>使用 FastQC v0.11.9 对原始下机数据（Raw Reads）进行碱基质量、GC 含量、接头污染及序列重复率的多维度质量评估；随后利用 Trimmomatic v0.39 执行数据清洗，核心参数为 <code>ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:20 MINLEN:50</code>，去除测序接头、低质量碱基及过短读段，最终获得 Clean Reads 用于后续分析。</p>
                         </div>
                         <div class="pipeline-step">
                             <h4>④ 基因组比对与表达定量</h4>
-                            <p>使用 HISAT2 v2.2.1（参数 <code>--dta --max-intronlen 500000</code>）将 Clean Reads 比对至密斑刺鲀 <em>Diodon hystrix</em> 参考基因组，经 SAMtools v1.15 排序并去除 PCR 重复；基于基因注释文件，使用 featureCounts（参数 <code>-T 8 -p --countReadPairs</code>）统计各基因的 reads 数，并进一步计算 TPM（Transcripts Per Million）与 FPKM 作为标准化表达量指标。</p>
+                            <p>使用 HISAT2 v2.2.1（参数 <code>--dta --max-intronlen 500000</code>）将 Clean Reads 比对至密斑刺鲀 <em>Diodon hystrix</em> 参考基因组，经 SAMtools v1.15 排序并去除 PCR 重复；基于基因注释文件，使用 featureCounts（参数 <code>-T 8 -p --countReadPairs</code>）统计各基因的 reads 数，并进一步计算 TPM（Transcripts Per Million）与 FPKM 作为标准化表达量指标，用于数据库展示与跨样本比较。</p>
                         </div>
                         <div class="pipeline-step">
                             <h4>⑤ 差异表达分析与功能注释</h4>
-                            <p>以 DESeq2 开展多组织间差异表达分析，筛选标准为 |log2(Fold Change)| ≥ 1 且调整后 P 值（padj）&lt; 0.05；功能注释层面，利用 Trinotate 与 InterProScan 对转录本进行系统注释，比对数据库涵盖 Swiss-Prot（蛋白功能）、Gene Ontology（GO：分子功能 / 生物学过程 / 细胞组分）及 KEGG（代谢与信号通路），并结合 Pfam 完成蛋白结构域预测。</p>
+                            <p>将 featureCounts 得到的原始 Reads Count 矩阵输入 DESeq2（其内置 median-of-ratios 归一化）开展多组织间差异表达分析，筛选标准为 |log2(Fold Change)| ≥ 1 且经 Benjamini-Hochberg 校正后的 P 值（padj）&lt; 0.05；功能注释层面，利用 Trinotate 与 InterProScan 对转录本进行系统注释，比对数据库涵盖 Swiss-Prot（蛋白功能）、Gene Ontology（GO：分子功能 / 生物学过程 / 细胞组分）及 KEGG（代谢与信号通路），并结合 Pfam 完成蛋白结构域预测。</p>
                         </div>
                         <div class="pipeline-step">
                             <h4>⑥ 前端可视化呈现</h4>
@@ -561,6 +561,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=11"></script>
+    <script src="script.js?v=13"></script>
 </body>
 </html>

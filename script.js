@@ -165,6 +165,19 @@ async function loadData() {
         loadComments();
     } catch (err) {
         console.error('数据加载失败:', err);
+        // 优雅降级：统计卡显示占位、提示重试，避免页面"死掉"
+        const ids = ['statGenes','statSeq','statExpr','statTissues','statGO','statKegg','statGenes2','statSeq2','statExpr2','statTissues2'];
+        ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+        let banner = document.getElementById('dbErrorBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'dbErrorBanner';
+            banner.style.cssText = 'background:#fdf0f3;color:#c0392b;border:1px solid #f5c6cb;border-radius:10px;padding:12px 18px;margin:14px auto;max-width:960px;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;gap:12px;';
+            const hero = document.querySelector('.hero') || document.body;
+            hero.insertAdjacentElement('beforebegin', banner);
+        }
+        banner.innerHTML = `<span>⚠️ 数据库连接失败，统计数字暂不可用。请检查网络后重试。</span>
+            <button class="btn-primary" style="padding:6px 16px;font-size:12.5px;" onclick="location.reload()">重新加载</button>`;
     }
 }
 
@@ -336,7 +349,7 @@ function renderFullExprChart() {
             formatter: function(params) {
                 const gName = params[0].axisValue;
                 const g = allGenes.find(x => x.gene_name === gName);
-                let html = `<div style="font-weight:600;color:#2d3454;margin-bottom:6px;">${gName}</div>`;
+                let html = `<div style="font-weight:600;color:#2d3454;margin-bottom:6px;"><i>${gName}</i></div>`;
                 params.forEach(p => {
                     const r = g && allExpr.find(e => e.gene_id === g.gene_id && e.tissue === p.seriesName);
                     html += `<div style="display:flex;justify-content:space-between;gap:14px;align-items:center;">
@@ -355,7 +368,9 @@ function renderFullExprChart() {
         grid: { left: '3%', right: '3%', bottom: '16%', top: '6%', containLabel: true },
         xAxis: {
             type: 'category', data: genes,
-            axisLabel: { rotate: 28, interval: 0, color: '#8a8fa3', fontSize: 11 },
+            axisLabel: { rotate: 28, interval: 0, color: '#8a8fa3', fontSize: 11,
+                formatter: v => `{gene|${v}}`,
+                rich: { gene: { fontStyle: 'italic' } } },
             axisLine: { lineStyle: { color: '#e2e5f2' } },
             axisTick: { show: false }
         },
@@ -436,7 +451,7 @@ function renderHeatmap() {
             borderWidth: 1,
             padding: [10, 14],
             textStyle: { color: '#2d3436', fontSize: 12 },
-            formatter: p => `<div style="font-weight:600;color:#2d3454;margin-bottom:4px;">${tissues[p.value[0]]} · ${genes[p.value[1]]}</div>TPM: <strong style="color:#6c5ce7;">${p.value[2]}</strong>`
+            formatter: p => `<div style="font-weight:600;color:#2d3454;margin-bottom:4px;">${tissues[p.value[0]]} · <i>${genes[p.value[1]]}</i></div>TPM: <strong style="color:#6c5ce7;">${p.value[2]}</strong>`
         },
         grid: { left: '3%', right: '13%', bottom: '6%', top: '4%', containLabel: true },
         xAxis: {
@@ -449,7 +464,9 @@ function renderHeatmap() {
         yAxis: {
             type: 'category', data: genes, name: '基因',
             nameTextStyle: { color: '#8a8fa3' },
-            axisLabel: { color: '#8a8fa3' },
+            axisLabel: { color: '#8a8fa3',
+                formatter: v => `{gene|${v}}`,
+                rich: { gene: { fontStyle: 'italic' } } },
             axisLine: { lineStyle: { color: '#e2e5f2' } },
             splitArea: { show: true, areaStyle: { color: ['rgba(255,255,255,0)', 'rgba(250,249,255,1)'] } }
         },
@@ -603,7 +620,10 @@ const EXPORT_SOURCE = {
 function exportTableCSV(table) {
     const meta = EXPORT_META[table];
     const data = EXPORT_SOURCE[table]();
-    if (!meta || !data || data.length === 0) return;
+    if (!meta || !data || data.length === 0) {
+        showToast('当前没有可导出的数据');
+        return;
+    }
     const rows = data.map(g => meta.headers.map(h => {
         let v = g[h] ?? '';
         if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) v = '"' + v.replace(/"/g, '""') + '"';
