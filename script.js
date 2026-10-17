@@ -480,8 +480,8 @@ function calcProteinProps(seq) {
         if (ch === 'K' || ch === 'R') pos++;
         if (ch === 'H') pos += 0.5;
     }
-    // 简化理论等电点估算（基于正负电荷残基平衡）
-    const pI = Math.max(0, Math.min(14, 5.7 + (pos - neg) * 0.25)).toFixed(2);
+    // 简化理论等电点估算（基于正负电荷残基平衡，系数经校准，范围 3.5-12）
+    const pI = Math.max(3.5, Math.min(12, 7.0 + (pos - neg) * 0.06)).toFixed(2);
     const aaCount = Object.keys(counts).length;
     return {
         length: up.length,
