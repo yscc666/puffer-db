@@ -246,7 +246,6 @@ function renderGeneTable() {
     } else {
         all.innerHTML = pageItems.map((g, i) => `
             <tr onclick="showDetail('${g.gene_id}')" style="cursor:pointer;">
-                <td>${start + i + 1}</td>
                 <td class="gene-id">${g.gene_id}</td>
                 <td><strong>${g.gene_name}</strong></td>
                 <td>${g.gene_desc || '-'}</td>
