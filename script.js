@@ -907,9 +907,28 @@ function buildFasta(geneId, type) {
 function copyFasta(geneId, type) {
     const fasta = buildFasta(geneId, type);
     if (!fasta) return showToast('该基因暂无序列数据');
-    navigator.clipboard.writeText(fasta).then(() => {
-        showToast('已成功复制到剪贴板！');
-    }).catch(() => showToast('复制失败，请手动选择序列复制'));
+    const done = () => showToast('已成功复制到剪贴板！');
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fasta).then(done).catch(() => fallbackCopy(fasta, done));
+    } else {
+        fallbackCopy(fasta, done);
+    }
+}
+
+function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        done();
+    } catch (e) {
+        showToast('复制失败，请手动选择序列复制');
+    }
+    document.body.removeChild(ta);
 }
 
 function downloadFasta(geneId, type) {
