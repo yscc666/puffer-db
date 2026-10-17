@@ -722,11 +722,12 @@ document.addEventListener('click', (e) => {
 function showDetail(geneId) {
     const g = allGenes.find(x => x.gene_id === geneId);
     if (!g) return;
+    const seq = allSeq.find(s => s.gene_id === geneId);
+    window.__cur = { gene: g, seq: seq };
     document.getElementById('modalTitle').textContent = `Gene: ${g.gene_name} (${g.gene_id})`;
     document.getElementById('modal').style.display = 'flex';
 
     // 基因标识区
-    const seq = allSeq.find(s => s.gene_id === geneId);
     document.getElementById('detailHeader').innerHTML = `
         <div class="gene-name-line">
             <span class="gene-name">${g.gene_name}</span>
@@ -843,8 +844,8 @@ function showDetail(geneId) {
         seqEl.innerHTML = `
             <div class="seq-box">
                 <div class="seq-title">CDS 序列 (${seq.cds_length || '-'} bp · GC ${seq.gc_content || '-'}%)
-                    <button class="btn-mini" style="float:right;" onclick="copySeq('${seq.cds_sequence || ''}')">复制</button>
-                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadSeq('${g.gene_id}','cds','${seq.cds_sequence || ''}')">FASTA</button>
+                    <button class="btn-mini" style="float:right;" onclick="copyFasta('${g.gene_id}','cds')">复制 FASTA</button>
+                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadFasta('${g.gene_id}','cds')">下载 FASTA</button>
                 </div>
                 <div class="seq-text" id="seqCds">${seq.cds_sequence || '暂无'}</div>
                 <div class="seq-actions">
@@ -853,8 +854,8 @@ function showDetail(geneId) {
             </div>
             <div class="seq-box">
                 <div class="seq-title">蛋白序列 (${seq.protein_length || '-'} aa)
-                    <button class="btn-mini" style="float:right;" onclick="copySeq('${seq.protein_sequence || ''}')">复制</button>
-                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadSeq('${g.gene_id}','pep','${seq.protein_sequence || ''}')">FASTA</button>
+                    <button class="btn-mini" style="float:right;" onclick="copyFasta('${g.gene_id}','pep')">复制 FASTA</button>
+                    <button class="btn-mini" style="float:right;margin-right:6px;" onclick="downloadFasta('${g.gene_id}','pep')">下载 FASTA</button>
                 </div>
                 <div class="seq-text" id="seqPep">${seq.protein_sequence || '暂无'}</div>
                 <div class="seq-actions">
@@ -890,27 +891,59 @@ function toggleSeq(id, btn) {
     }
 }
 
-function copySeq(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        const tip = document.getElementById('commentTip');
-        if (tip) {
-            tip.textContent = '已复制到剪贴板';
-            setTimeout(() => tip.textContent = '', 2000);
-        }
-    });
+// ========== FASTA 复制 / 下载（完整 FASTA 格式 + Toast 提示） ==========
+function buildFasta(geneId, type) {
+    const cur = window.__cur || {};
+    const g = cur.gene || {};
+    const seq = type === 'cds'
+        ? (cur.seq && cur.seq.cds_sequence)
+        : (cur.seq && cur.seq.protein_sequence);
+    if (!seq) return null;
+    const label = type === 'cds' ? 'coding sequence' : 'protein';
+    const name = g.gene_name || geneId;
+    return `>${geneId} | Diodon hystrix | ${name} (${label})\n${seq}\n`;
 }
 
-function downloadSeq(geneId, type, sequence) {
-    const header = `>${geneId}|${type}|Diodon_hystrix`;
-    const blob = new Blob([header + '\n' + sequence + '\n'], { type: 'text/plain' });
+function copyFasta(geneId, type) {
+    const fasta = buildFasta(geneId, type);
+    if (!fasta) return showToast('该基因暂无序列数据');
+    navigator.clipboard.writeText(fasta).then(() => {
+        showToast('已成功复制到剪贴板！');
+    }).catch(() => showToast('复制失败，请手动选择序列复制'));
+}
+
+function downloadFasta(geneId, type) {
+    const fasta = buildFasta(geneId, type);
+    if (!fasta) return showToast('该基因暂无序列数据');
+    const blob = new Blob([fasta], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${geneId}_${type}.fasta`;
+    a.download = type === 'cds' ? `${geneId}.fasta` : `${geneId}_protein.fasta`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function showToast(msg) {
+    let t = document.getElementById('globalToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'globalToast';
+        t.className = 'toast';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copySeq(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制到剪贴板');
+    });
 }
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
